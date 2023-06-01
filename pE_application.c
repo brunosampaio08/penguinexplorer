@@ -15,8 +15,6 @@ int main(int argc, char **argv)
 	struct window_desc prompt_window = {.height = 15, .width = 17, .starty = 0, .startx = 0};
 	int rows, cols;
 	
-	struct shell_struct my_shell;
-	
 	initscr();
 	raw();
 
@@ -30,24 +28,20 @@ int main(int argc, char **argv)
 
 	// making box border with default border styles
 	box(prompt_window.win, 0, 0);
-	mvwprintw(prompt_window.win, ++prompt_window.starty, ++prompt_window.startx, "prompt >");
+	mvwprintw(prompt_window.win, ++prompt_window.starty, ++prompt_window.startx, "prompt > ");
 
 	// refreshing the window
 	wrefresh(prompt_window.win);
 
-	//my_shell = start_shell();
-
 	char unparsed_cmd[100];
-	getstr(unparsed_cmd);
-	printw(unparsed_cmd);
-	do{
+	wgetnstr(prompt_window.win, unparsed_cmd, 100);
+	while(strcmp(unparsed_cmd, "exit"))
+	{
+		wmove(prompt_window.win, ++prompt_window.starty, 5);
 		run_shell(unparsed_cmd);
-		getstr(unparsed_cmd);
-	}while(!strcmp(unparsed_cmd, "exit"));
-
-	getch();
-
-	delete_shell(my_shell, 0);
+		mvwprintw(prompt_window.win, ++prompt_window.starty, 1, "prompt > ");
+		wgetnstr(prompt_window.win, unparsed_cmd, 100);
+	}
 
 	delwin(prompt_window.win);
 	endwin();
