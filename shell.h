@@ -9,3 +9,4 @@
 #include <fcntl.h>
 
 int run_shell(char *unparsed_cmd);
+char *shell_start();

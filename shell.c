@@ -91,7 +91,11 @@ char ***createCMDMatrix(int argc, char **argv, int *cmd_num, int *input_from, in
 		*input_from = STDIN_FILENO;
 	}
 	if(*output_to == -1){
-		*output_to = STDOUT_FILENO;
+		*output_to = open(TMP_OUT, O_WRONLY | O_CREAT | O_TRUNC, 
+					S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+		if(*output_to == -1){
+			perror("open()");
+		}
 	}
 
 	//Retorna a matri de comandos
@@ -202,10 +206,28 @@ int run_shell(char *unparsed_cmd){
 	char **parsed_cmd = NULL;
 	int arg_num;
 
+	struct stat st = {0};
+
+	if (stat(TMP_DIR, &st) == -1) {
+	    mkdir(TMP_DIR, 0700);
+	}
+
 	parsed_cmd = parse_cmd(unparsed_cmd, &arg_num);
 
 	cmd = createCMDMatrix(arg_num, parsed_cmd, &cmd_num, &input_from, &output_to);
 	exeCMD(cmd, cmd_num, input_from, output_to);
 
+	if(input_from != STDIN_FILENO)
+	{
+		close(input_from);
+	}
+	// output_fd should always be closed by caller
+	close(output_to);
+
 	return 0;
+}
+
+char *shell_start()
+{
+	return TMP_OUT;
 }
