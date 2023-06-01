@@ -140,6 +140,7 @@ int exeCMD(char ***cmd, int cmd_num, int input_from, int output_to){
 			}
 
 			execvp(cmd[i][0], cmd[i]);
+			exit(-1);
 		}else if(pid > 0){
 			int status;
 			if(i > 0){//Existe comando anterior
@@ -148,9 +149,15 @@ int exeCMD(char ***cmd, int cmd_num, int input_from, int output_to){
 				close(fd[i-1][1]);
 			}
 			waitpid(-1, &status, 0);
+			if(WIFEXITED(status)){
+				if(WEXITSTATUS(status)){
+					return -1;
+				}
+			}
 		}
 	}
 
+	return 0;
 }
 
 char *readinput(FILE *file){
@@ -206,6 +213,8 @@ int run_shell(char *unparsed_cmd){
 	char **parsed_cmd = NULL;
 	int arg_num;
 
+	int return_value = 0;
+
 	struct stat st = {0};
 
 	if (stat(TMP_DIR, &st) == -1) {
@@ -215,7 +224,12 @@ int run_shell(char *unparsed_cmd){
 	parsed_cmd = parse_cmd(unparsed_cmd, &arg_num);
 
 	cmd = createCMDMatrix(arg_num, parsed_cmd, &cmd_num, &input_from, &output_to);
-	exeCMD(cmd, cmd_num, input_from, output_to);
+	return_value = exeCMD(cmd, cmd_num, input_from, output_to);
+
+	// exec failed
+	if(return_value == -1){
+		return -1;
+	}
 
 	if(input_from != STDIN_FILENO)
 	{
