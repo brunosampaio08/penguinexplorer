@@ -17,7 +17,7 @@ struct window_desc {
 	WINDOW *win;
 };
 
-void read_and_print_gdbTmp(FILE *gdb_file, char* regex, struct window_desc window){
+void read_and_print_gdbTmp(FILE *gdb_file, char* regex, struct window_desc *window){
 	regex_t fname_regex;
 	char buffer[1000]; //no line should be 1000 chars
 	char ch;
@@ -27,28 +27,28 @@ void read_and_print_gdbTmp(FILE *gdb_file, char* regex, struct window_desc windo
 
 	while(fgets(buffer, 1000, gdb_file)){
 		if(!regexec(&fname_regex, buffer, 0, NULL, 0)){ //check if it's our file. if it is, then next lines until an empty line should be our symbols
-			mvwprintw(window.win, window.pointer_y, window.pointer_x, buffer);
-			wrefresh(window.win);
-			window.pointer_y++;
+			mvwprintw((*window).win, (*window).pointer_y, (*window).pointer_x, buffer);
+			wrefresh((*window).win);
+			(*window).pointer_y++;
 			while(kp || ((ch = fgetc(gdb_file)) != EOF))
 			{	
 				kp = 0;
-				if(window.pointer_y == (window.height-2)){
+				if((*window).pointer_y == ((*window).height-2)){
 					char tmp_ch;
-					mvwprintw(window.win, window.height-1, window.startx, "Page End. Pres \"n\" to go to next page.");
+					mvwprintw((*window).win, (*window).height-1, (*window).startx, "Page End. Pres \"n\" to go to next page.");
 					noecho();
-					while((tmp_ch = wgetch(window.win)) != 'n');
-					wclear(window.win);
-					wrefresh(window.win);
-					box(window.win, window.starty, window.startx);
-					window.pointer_y = window.starty+1;
-					window.pointer_x = window.startx+1;
+					while((tmp_ch = wgetch((*window).win)) != 'n');
+					wclear((*window).win);
+					wrefresh((*window).win);
+					box((*window).win, (*window).starty, (*window).startx);
+					(*window).pointer_y = (*window).starty+1;
+					(*window).pointer_x = (*window).startx+1;
 					echo();
 				}
 				if(ch == '\n'){
-					window.pointer_y++;
-					window.pointer_x = 1;
-					wmove(window.win, window.pointer_y, window.pointer_x);
+					(*window).pointer_y++;
+					(*window).pointer_x = 1;
+					wmove((*window).win, (*window).pointer_y, (*window).pointer_x);
 					// if next is also a newline then stop
 					if((ch = fgetc(gdb_file)) == '\n'){
 						break;
@@ -56,17 +56,54 @@ void read_and_print_gdbTmp(FILE *gdb_file, char* regex, struct window_desc windo
 					kp = 1;
 					continue;
 				}
-				if(window.pointer_x >= (window.width-2)){
-					window.pointer_y++;
-					window.pointer_x = 1;
+				if((*window).pointer_x >= ((*window).width-2)){
+					(*window).pointer_y++;
+					(*window).pointer_x = 1;
 				}
-				mvwaddch(window.win, window.pointer_y, window.pointer_x++, ch);
-				wrefresh(window.win);
+				mvwaddch((*window).win, (*window).pointer_y, (*window).pointer_x++, ch);
+				wrefresh((*window).win);
 			}
-			wmove(window.win, window.pointer_y++, window.pointer_x);
+			wmove((*window).win, (*window).pointer_y++, (*window).pointer_x);
 		}
 	}
 
+}
+
+void print_output_file(FILE *output_file, struct window_desc *window)
+{
+	char ch;
+
+	while((ch = fgetc(output_file)) != EOF)
+	{	
+		if((*window).pointer_y == ((*window).height-2)){
+			char tmp_ch;
+			mvwprintw((*window).win, (*window).height-1, (*window).startx, "Page End. Pres \"n\" to go to next page.");
+			noecho();
+			while((tmp_ch = wgetch((*window).win)) != 'n');
+			wclear((*window).win);
+			wrefresh((*window).win);
+			box((*window).win, (*window).starty, (*window).startx);
+			(*window).pointer_y = (*window).starty+1;
+			(*window).pointer_x = (*window).startx+1;
+			echo();
+		}
+		if(ch == '\n'){
+			(*window).pointer_y++;
+			(*window).pointer_x = 1;
+			wmove((*window).win, (*window).pointer_y, (*window).pointer_x);
+			continue;
+		}
+		if((*window).pointer_x >= ((*window).width-2)){
+			(*window).pointer_y++;
+			(*window).pointer_x = 1;
+		}
+		mvwaddch((*window).win, (*window).pointer_y, (*window).pointer_x++, ch);
+		wrefresh((*window).win);
+	}
+	if((*window).pointer_x != 1){
+		(*window).pointer_y++;
+		(*window).pointer_x = 1;
+	}
 }
 
 int main(int argc, char **argv)
@@ -92,7 +129,6 @@ int main(int argc, char **argv)
 
 	char unparsed_cmd[100];
 	char *path;
-	char ch;
 
 	// init screen
 	initscr();
@@ -139,7 +175,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	read_and_print_gdbTmp(gdb_file, "File .*\.[ch]:", memExam_window);
+	read_and_print_gdbTmp(gdb_file, "File .*\.[ch]:", &memExam_window);
 
 	fclose(gdb_file);
 
@@ -156,37 +192,7 @@ int main(int argc, char **argv)
 			continue;
 		}
 		output_file = fopen(path, "rw");
-		while((ch = fgetc(output_file)) != EOF)
-		{	
-			if(prompt_window.pointer_y == (prompt_window.height-2)){
-				char tmp_ch;
-				mvwprintw(prompt_window.win, prompt_window.height-1, prompt_window.startx, "Page End. Pres \"n\" to go to next page.");
-				noecho();
-				while((tmp_ch = wgetch(prompt_window.win)) != 'n');
-				wclear(prompt_window.win);
-				wrefresh(prompt_window.win);
-				box(prompt_window.win, prompt_window.starty, prompt_window.startx);
-				prompt_window.pointer_y = prompt_window.starty+1;
-				prompt_window.pointer_x = prompt_window.startx+1;
-				echo();
-			}
-			if(ch == '\n'){
-				prompt_window.pointer_y++;
-				prompt_window.pointer_x = 1;
-				wmove(prompt_window.win, prompt_window.pointer_y, prompt_window.pointer_x);
-				continue;
-			}
-			if(prompt_window.pointer_x >= (prompt_window.width-2)){
-				prompt_window.pointer_y++;
-				prompt_window.pointer_x = 1;
-			}
-			mvwaddch(prompt_window.win, prompt_window.pointer_y, prompt_window.pointer_x++, ch);
-			wrefresh(prompt_window.win);
-		}
-		if(prompt_window.pointer_x != 1){
-			prompt_window.pointer_y++;
-			prompt_window.pointer_x = 1;
-		}
+		print_output_file(output_file, &prompt_window);
 		fclose(output_file);
 	}while(strcmp(unparsed_cmd, "exit"));
 
