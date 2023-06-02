@@ -1,6 +1,7 @@
 //TODO make shell_start better
 
 #include <ncurses.h>
+#include <regex.h>
 
 #include "shell.h"
 
@@ -15,6 +16,58 @@ struct window_desc {
 	int pointer_x;
 	WINDOW *win;
 };
+
+void read_and_print_gdbTmp(FILE *gdb_file, char* regex, struct window_desc window){
+	regex_t fname_regex;
+	char buffer[1000]; //no line should be 1000 chars
+	char ch;
+	int kp = 0;
+
+	regcomp(&fname_regex, regex, REG_EXTENDED);
+
+	while(fgets(buffer, 1000, gdb_file)){
+		if(!regexec(&fname_regex, buffer, 0, NULL, 0)){ //check if it's our file. if it is, then next lines until an empty line should be our symbols
+			mvwprintw(window.win, window.pointer_y, window.pointer_x, buffer);
+			wrefresh(window.win);
+			window.pointer_y++;
+			while(kp || ((ch = fgetc(gdb_file)) != EOF))
+			{	
+				kp = 0;
+				if(window.pointer_y == (window.height-2)){
+					char tmp_ch;
+					mvwprintw(window.win, window.height-1, window.startx, "Page End. Pres \"n\" to go to next page.");
+					noecho();
+					while((tmp_ch = wgetch(window.win)) != 'n');
+					wclear(window.win);
+					wrefresh(window.win);
+					box(window.win, window.starty, window.startx);
+					window.pointer_y = window.starty+1;
+					window.pointer_x = window.startx+1;
+					echo();
+				}
+				if(ch == '\n'){
+					window.pointer_y++;
+					window.pointer_x = 1;
+					wmove(window.win, window.pointer_y, window.pointer_x);
+					// if next is also a newline then stop
+					if((ch = fgetc(gdb_file)) == '\n'){
+						break;
+					}
+					kp = 1;
+					continue;
+				}
+				if(window.pointer_x >= (window.width-2)){
+					window.pointer_y++;
+					window.pointer_x = 1;
+				}
+				mvwaddch(window.win, window.pointer_y, window.pointer_x++, ch);
+				wrefresh(window.win);
+			}
+			wmove(window.win, window.pointer_y++, window.pointer_x);
+		}
+	}
+
+}
 
 int main(int argc, char **argv)
 {
@@ -86,115 +139,9 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	char buffer[1000]; //no line should be 1000 chars
-	char *token;
-	int stop = 0;
-	int kp = 0;
-	while(fgets(buffer, 1000, gdb_file)){
-		token = strtok(buffer, "\t \n");
-		while(token){
-			fprintf(stderr, "token: %s\n", token);
-			if(!strcmp(token,"pE_application.c:")){ //check if it's our file. if it is, then next lines until an empty line should be our symbols
-				mvwprintw(memExam_window.win, memExam_window.pointer_y, memExam_window.pointer_x, "File pE_application.c:");
-				wrefresh(memExam_window.win);
-				memExam_window.pointer_y++;
-				while(kp || ((ch = fgetc(gdb_file)) != EOF))
-				{	
-					kp = 0;
-					if(memExam_window.pointer_y == (memExam_window.height-2)){
-						char tmp_ch;
-						mvwprintw(memExam_window.win, memExam_window.height-1, memExam_window.startx, "Page End. Pres \"n\" to go to next page.");
-						noecho();
-						while((tmp_ch = wgetch(memExam_window.win)) != 'n');
-						wclear(memExam_window.win);
-						wrefresh(memExam_window.win);
-						box(memExam_window.win, memExam_window.starty, memExam_window.startx);
-						memExam_window.pointer_y = memExam_window.starty+1;
-						memExam_window.pointer_x = memExam_window.startx+1;
-						echo();
-					}
-					if(ch == '\n'){
-						kp = 1;
-						memExam_window.pointer_y++;
-						memExam_window.pointer_x = 1;
-						wmove(memExam_window.win, memExam_window.pointer_y, memExam_window.pointer_x);
-						// if next is also a newline then stop
-						if((ch = fgetc(gdb_file)) == '\n'){
-							break;
-						}
-						continue;
-					}
-					if(memExam_window.pointer_x >= (memExam_window.width-2)){
-						memExam_window.pointer_y++;
-						memExam_window.pointer_x = 1;
-					}
-					mvwaddch(memExam_window.win, memExam_window.pointer_y, memExam_window.pointer_x++, ch);
-					wrefresh(memExam_window.win);
-				}
-				
-				stop = 1;
-			}
-			token = strtok(NULL, "\t \n");
-		}
-		if(stop)
-			break;
-	}
-
-	wmove(memExam_window.win, memExam_window.pointer_y++, memExam_window.pointer_x);
-
-	stop = 0;
-	while(fgets(buffer, 1000, gdb_file)){
-		token = strtok(buffer, "\t \n");
-		while(token){
-			fprintf(stderr, "token: %s\n", token);
-			if(!strcmp(token,"shell.c:")){ //check if it's our file. if it is, then next lines until an empty line should be our symbols
-				wmove(memExam_window.win, memExam_window.pointer_y, memExam_window.pointer_x);
-				wprintw(memExam_window.win, "File shell.c:");
-				wrefresh(memExam_window.win);
-				while(kp || ((ch = fgetc(gdb_file)) != EOF))
-				{	
-					kp = 0;
-					if(memExam_window.pointer_y == (memExam_window.height-2)){
-						char tmp_ch;
-						mvwprintw(memExam_window.win, memExam_window.height-1, memExam_window.startx, "Page End. Pres \"n\" to go to next page.");
-						noecho();
-						while((tmp_ch = wgetch(memExam_window.win)) != 'n');
-						wclear(memExam_window.win);
-						wrefresh(memExam_window.win);
-						box(memExam_window.win, memExam_window.starty, memExam_window.startx);
-						memExam_window.pointer_y = memExam_window.starty+1;
-						memExam_window.pointer_x = memExam_window.startx+1;
-						echo();
-					}
-					if(ch == '\n'){
-						kp = 1;
-						memExam_window.pointer_y++;
-						memExam_window.pointer_x = 1;
-						wmove(memExam_window.win, memExam_window.pointer_y, memExam_window.pointer_x);
-						// if next is also a newline then stop
-						if((ch = fgetc(gdb_file)) == '\n'){
-							break;
-						}
-						continue;
-					}
-					if(memExam_window.pointer_x >= (memExam_window.width-2)){
-						memExam_window.pointer_y++;
-						memExam_window.pointer_x = 1;
-					}
-					mvwaddch(memExam_window.win, memExam_window.pointer_y, memExam_window.pointer_x++, ch);
-					wrefresh(memExam_window.win);
-				}
-				
-				stop = 1;
-			}
-			token = strtok(NULL, "\t \n");
-		}
-		if(stop)
-			break;
-	}
+	read_and_print_gdbTmp(gdb_file, "File .*\.[ch]:", memExam_window);
 
 	fclose(gdb_file);
-
 
 	path = shell_start();
 
