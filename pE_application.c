@@ -73,8 +73,8 @@ int main(int argc, char **argv)
 	box(memExam_window.win, 0, 0);
 	wrefresh(memExam_window.win);
 
-	memExam_window.pointer_y = memExam_window.starty+1;
-	memExam_window.pointer_x = memExam_window.startx+1;
+	memExam_window.pointer_y = 1;
+	memExam_window.pointer_x = 1;
 
 	/* FINISHED MemoryExamination WINDOW */
 
@@ -95,9 +95,9 @@ int main(int argc, char **argv)
 		while(token){
 			fprintf(stderr, "token: %s\n", token);
 			if(!strcmp(token,"pE_application.c:")){ //check if it's our file. if it is, then next lines until an empty line should be our symbols
+				mvwprintw(memExam_window.win, memExam_window.pointer_y, memExam_window.pointer_x, "File pE_application.c:");
 				wrefresh(memExam_window.win);
-				wmove(memExam_window.win, memExam_window.pointer_y, memExam_window.pointer_x);
-				wprintw(memExam_window.win, "File pE_application.c:");
+				memExam_window.pointer_y++;
 				while(kp || ((ch = fgetc(gdb_file)) != EOF))
 				{	
 					kp = 0;
@@ -139,6 +139,8 @@ int main(int argc, char **argv)
 		if(stop)
 			break;
 	}
+
+	wmove(memExam_window.win, memExam_window.pointer_y++, memExam_window.pointer_x);
 
 	stop = 0;
 	while(fgets(buffer, 1000, gdb_file)){
