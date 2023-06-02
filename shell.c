@@ -245,3 +245,22 @@ char *shell_start()
 {
 	return TMP_OUT;
 }
+
+int delete_shell(int keep_history){
+	if(keep_history){
+		if(access(TMP_OUT, F_OK) == 0){
+			remove(TMP_OUT);
+		}
+		if(access(TMP_ERR, F_OK) == 0){
+			remove(TMP_ERR);
+		}
+		if(access(TMP_IN, F_OK) == 0){
+			remove(TMP_IN);
+		}
+		if(access(TMP_DIR, F_OK) == 0){
+			rmdir(TMP_DIR);
+		}
+	}
+
+	return 0;
+}

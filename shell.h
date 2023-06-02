@@ -9,4 +9,5 @@
 #include <fcntl.h>
 
 int run_shell(char *unparsed_cmd);
+int delete_shell(int keep_history);
 char *shell_start();

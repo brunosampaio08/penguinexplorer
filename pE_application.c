@@ -1,4 +1,4 @@
-//TODO make a shell_delete and make shell_start better
+//TODO make shell_start better
 
 #include <ncurses.h>
 
@@ -52,8 +52,6 @@ int main(int argc, char **argv)
 	// refreshing the window
 	wrefresh(prompt_window.win);
 
-	char buffer[1000];
-
 	freopen("tmp/tmp_err", "a+", stderr);
 
 	path = shell_start();
@@ -102,6 +100,8 @@ int main(int argc, char **argv)
 		}
 		fclose(output_file);
 	}while(strcmp(unparsed_cmd, "exit"));
+
+	delete_shell(1);
 
 	delwin(prompt_window.win);
 	endwin();
