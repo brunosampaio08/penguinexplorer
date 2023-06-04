@@ -1,8 +1,17 @@
-set width 0
-set height 0
-set verbose off
-set debuginfod enabled on
+set logging file ./tmp/gdb.tmp
+set logging overwrite on
+set logging redirect on
+set logging debugredirect on
+set logging enabled on
 
-set follow-fork-mode child
+set follow-fork-mode parent
 
 info functions
+
+break run_shell
+	command 1
+	p unparsed_cmd
+	continue
+end
+
+run
