@@ -7,6 +7,13 @@
 
 #define GDB_TMP "./tmp/gdb.tmp"
 
+#define LOG_TAG "pE_application"
+#define DEBUG
+
+#define pELOG(fmt, ...) \
+	fprintf(stderr, "[%s] [%s]: " fmt "\n", \
+			LOG_TAG, __func__, __VA_ARGS__);
+
 struct window_desc {
 	int height;
 	int width;
@@ -24,6 +31,8 @@ void read_and_print_gdbTmp(FILE *gdb_file, char* regex, struct window_desc *wind
 	int kp = 0;
 
 	regcomp(&fname_regex, regex, REG_EXTENDED);
+
+	pELOG("Started!");
 
 	while(fgets(buffer, 1000, gdb_file)){
 		if(!regexec(&fname_regex, buffer, 0, NULL, 0)){ //check if it's our file. if it is, then next lines until an empty line should be our symbols
@@ -129,6 +138,10 @@ int main(int argc, char **argv)
 	char unparsed_cmd[100];
 	char *path;
 
+	stderr = freopen("./tmp/tmp_err", "w", stderr);
+	// set stderr buffering to line buffering instead of block
+	setvbuf(stderr, NULL, _IOLBF, 0);
+
 	// init screen
 	initscr();
 	// dont wait for newline
@@ -166,8 +179,6 @@ int main(int argc, char **argv)
 
 	/* FINISHED MemoryExamination WINDOW */
 
-	freopen("tmp/tmp_err", "a+", stderr);
-
 	// print some stuff on memExam just for fun
 	if (!(gdb_file = fopen(GDB_TMP, "r"))){
 		perror("Could not open GDB_TMP");
@@ -175,8 +186,6 @@ int main(int argc, char **argv)
 	}
 
 	read_and_print_gdbTmp(gdb_file, "File .*\.[ch]:", &memExam_window);
-
-	fclose(gdb_file);
 
 	path = shell_start();
 
@@ -190,12 +199,15 @@ int main(int argc, char **argv)
 			mvwprintw(prompt_window.win, prompt_window.pointer_y++, prompt_window.startx+1, "Command failed. Are you sure it exists?");
 			continue;
 		}
+		read_and_print_gdbTmp(gdb_file, "\+p unparsed_cmd", &memExam_window);
 		output_file = fopen(path, "rw");
 		print_output_file(output_file, &prompt_window);
 		fclose(output_file);
 	}while(strcmp(unparsed_cmd, "exit"));
 
-	delete_shell(1);
+	delete_shell(0);
+
+	fclose(gdb_file);
 
 	delwin(prompt_window.win);
 	endwin();
