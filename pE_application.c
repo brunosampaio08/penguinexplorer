@@ -35,12 +35,12 @@ void read_and_print_gdbTmp(FILE *gdb_file, char* regex, struct window_desc *wind
 				kp = 0;
 				if((*window).pointer_y == ((*window).height-2)){
 					char tmp_ch;
-					mvwprintw((*window).win, (*window).height-1, (*window).startx, "Page End. Pres \"n\" to go to next page.");
+					mvwprintw((*window).win, (*window).height-1, 0, "Page End. Pres \"n\" to go to next page.");
 					noecho();
 					while((tmp_ch = wgetch((*window).win)) != 'n');
 					wclear((*window).win);
 					wrefresh((*window).win);
-					box((*window).win, (*window).starty, (*window).startx);
+					box((*window).win, 0, 0);
 					(*window).pointer_y = (*window).starty+1;
 					(*window).pointer_x = (*window).startx+1;
 					echo();
@@ -66,7 +66,6 @@ void read_and_print_gdbTmp(FILE *gdb_file, char* regex, struct window_desc *wind
 			wmove((*window).win, (*window).pointer_y++, (*window).pointer_x);
 		}
 	}
-
 }
 
 void print_output_file(FILE *output_file, struct window_desc *window)
