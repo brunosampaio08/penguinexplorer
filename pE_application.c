@@ -12,7 +12,7 @@
 
 #define pELOG(fmt, ...) \
 	fprintf(stderr, "[%s] [%s]: " fmt "\n", \
-			LOG_TAG, __func__, __VA_ARGS__);
+			LOG_TAG, __func__, ##__VA_ARGS__);
 
 struct window_desc {
 	int height;
@@ -24,73 +24,22 @@ struct window_desc {
 	WINDOW *win;
 };
 
-void read_and_print_gdbTmp(FILE *gdb_file, char* regex, struct window_desc *window){
-	regex_t fname_regex;
-	char buffer[1000]; //no line should be 1000 chars
-	char ch;
-	int kp = 0;
-
-	regcomp(&fname_regex, regex, REG_EXTENDED);
-
-	pELOG("Started!");
-
-	while(fgets(buffer, 1000, gdb_file)){
-		if(!regexec(&fname_regex, buffer, 0, NULL, 0)){ //check if it's our file. if it is, then next lines until an empty line should be our symbols
-			mvwprintw((*window).win, (*window).pointer_y, (*window).pointer_x, buffer);
-			wrefresh((*window).win);
-			(*window).pointer_y++;
-			while(kp || ((ch = fgetc(gdb_file)) != EOF))
-			{	
-				kp = 0;
-				if((*window).pointer_y == ((*window).height-2)){
-					char tmp_ch;
-					mvwprintw((*window).win, (*window).height-1, 0, "Page End. Pres \"n\" to go to next page.");
-					noecho();
-					while((tmp_ch = wgetch((*window).win)) != 'n');
-					wclear((*window).win);
-					wrefresh((*window).win);
-					box((*window).win, 0, 0);
-					(*window).pointer_y = (*window).starty+1;
-					(*window).pointer_x = (*window).startx+1;
-					echo();
-				}
-				if(ch == '\n'){
-					(*window).pointer_y++;
-					(*window).pointer_x = 1;
-					wmove((*window).win, (*window).pointer_y, (*window).pointer_x);
-					// if next is also a newline then stop
-					if((ch = fgetc(gdb_file)) == '\n'){
-						break;
-					}
-					kp = 1;
-					continue;
-				}
-				if((*window).pointer_x >= ((*window).width-2)){
-					(*window).pointer_y++;
-					(*window).pointer_x = 1;
-				}
-				mvwaddch((*window).win, (*window).pointer_y, (*window).pointer_x++, ch);
-				wrefresh((*window).win);
-			}
-			wmove((*window).win, (*window).pointer_y++, (*window).pointer_x);
-		}
-	}
-}
-
-void print_output_file(FILE *output_file, struct window_desc *window)
-{
+void print_to_window(char* message, struct window_desc *window){
+	size_t length;
 	char ch;
 
-	while((ch = fgetc(output_file)) != EOF)
+	length = strlen(message);
+	for(size_t i = 0; i < length; i++)
 	{	
-		if((*window).pointer_y == ((*window).height-2)){
+		ch = message[i];
+		if((*window).pointer_y >= ((*window).height-2)){
 			char tmp_ch;
-			mvwprintw((*window).win, (*window).height-1, (*window).startx, "Page End. Pres \"n\" to go to next page.");
+			mvwprintw((*window).win, (*window).height-1, 0, "Page End. Pres \"n\" to go to next page.");
 			noecho();
 			while((tmp_ch = wgetch((*window).win)) != 'n');
 			wclear((*window).win);
 			wrefresh((*window).win);
-			box((*window).win, (*window).starty, (*window).startx);
+			box((*window).win, 0, 0);
 			(*window).pointer_y = (*window).starty+1;
 			(*window).pointer_x = (*window).startx+1;
 			echo();
@@ -108,10 +57,43 @@ void print_output_file(FILE *output_file, struct window_desc *window)
 		mvwaddch((*window).win, (*window).pointer_y, (*window).pointer_x++, ch);
 		wrefresh((*window).win);
 	}
-	if((*window).pointer_x != 1){
-		(*window).pointer_y++;
-		(*window).pointer_x = 1;
+}
+
+void read_and_print_file(FILE *file, char* start_regex,\
+		char* stop_regex, struct window_desc *window, int should_print_start, int should_print_stop){
+	regex_t fname_start_regex;
+	regex_t fname_stop_regex;
+	char buffer[1000]; //no line should be 1000 chars
+	char ch;
+	int kp = 0;
+
+	regcomp(&fname_start_regex, start_regex, REG_EXTENDED);
+	regcomp(&fname_stop_regex, stop_regex, REG_EXTENDED);
+
+	pELOG("Started with start_regex: %s", start_regex);
+	pELOG("Started with stop_regex: %s", stop_regex);
+
+	int length;
+
+	while(fgets(buffer, 1000, file)){
+		if(!regexec(&fname_start_regex, buffer, 0, NULL, 0)){
+			if(!should_print_start){
+				fgets(buffer, 1000, file);
+			}
+			do
+			{
+				print_to_window(buffer, window);
+
+			}while(fgets(buffer, 1000, file) && regexec(&fname_stop_regex, buffer, 0, NULL, 0));
+			if(should_print_stop)
+			{
+				print_to_window(buffer, window);
+			}
+			wmove((*window).win, (*window).pointer_y++, (*window).pointer_x);
+		}
 	}
+
+	clearerr(file);
 }
 
 int main(int argc, char **argv)
@@ -185,7 +167,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	read_and_print_gdbTmp(gdb_file, "File .*\.[ch]:", &memExam_window);
+	read_and_print_file(gdb_file, "File .*\\.[ch]:", "^\\s*$", &memExam_window, 1, 0);
 
 	path = shell_start();
 
@@ -199,9 +181,9 @@ int main(int argc, char **argv)
 			mvwprintw(prompt_window.win, prompt_window.pointer_y++, prompt_window.startx+1, "Command failed. Are you sure it exists?");
 			continue;
 		}
-		read_and_print_gdbTmp(gdb_file, "\+p unparsed_cmd", &memExam_window);
+		read_and_print_file(gdb_file, "\\+p unparsed_cmd", "\\+continue", &memExam_window, 0, 0);
 		output_file = fopen(path, "rw");
-		print_output_file(output_file, &prompt_window);
+		read_and_print_file(output_file, ".*", "^$", &prompt_window, 1, 0);
 		fclose(output_file);
 	}while(strcmp(unparsed_cmd, "exit"));
 
