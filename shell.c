@@ -5,6 +5,7 @@
 
 
 #include "shell.h"
+#include "pE_application.h"
 
 #define TMP_DIR "./tmp"
 #define TMP_IN TMP_DIR"/tmp_in"

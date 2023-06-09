@@ -14,6 +14,8 @@
 	fprintf(stderr, "[%s] [%s]: " fmt "\n", \
 			LOG_TAG, __func__, ##__VA_ARGS__);
 
+void gdb_run(char *str) {}
+
 struct window_desc {
 	int height;
 	int width;
@@ -111,6 +113,7 @@ int main(int argc, char **argv)
 					.startx = 0,
 					.pointer_y = 1,
 					.pointer_x = 1};
+
 	int rows, cols;
 	int return_value;
 
