@@ -4,15 +4,12 @@
 #include <regex.h>
 
 #include "shell.h"
+#include "pE_application.h"
 
 #define GDB_TMP "./tmp/gdb.tmp"
 
 #define LOG_TAG "pE_application"
 #define DEBUG
-
-#define pELOG(fmt, ...) \
-	fprintf(stderr, "[%s] [%s]: " fmt "\n", \
-			LOG_TAG, __func__, ##__VA_ARGS__);
 
 void gdb_run(char *str) {}
 
