@@ -5,7 +5,7 @@ set logging debugredirect on
 set logging enabled on
 
 set debuginfod enabled on
-set trace-commands on
+#set trace-commands on
 
 set follow-fork-mode parent
 set detach-on-fork off

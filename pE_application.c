@@ -63,16 +63,12 @@ void read_and_print_file(FILE *file, char* start_regex,\
 	regex_t fname_start_regex;
 	regex_t fname_stop_regex;
 	char buffer[1000]; //no line should be 1000 chars
-	char ch;
-	int kp = 0;
 
 	regcomp(&fname_start_regex, start_regex, REG_EXTENDED);
 	regcomp(&fname_stop_regex, stop_regex, REG_EXTENDED);
 
 	pELOG("Started with start_regex: %s", start_regex);
 	pELOG("Started with stop_regex: %s", stop_regex);
-
-	int length;
 
 	while(fgets(buffer, 1000, file)){
 		if(!regexec(&fname_start_regex, buffer, 0, NULL, 0)){
