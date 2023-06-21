@@ -2,3 +2,4 @@ bin/**
 tmp/**
 *.o
 user_scripts/**
+tutorials/bin/**
