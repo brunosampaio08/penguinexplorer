@@ -1,0 +1,7 @@
+# How to make a tutorial:
+
+Every tutorial should be composed of 2 files:
+	1-) A .c file that'll be run by exec, name should be: tutorial.<n>.c where n is an integer ranging from {1..99999999999999}
+	2-) A .txt file that is the script that should be printed, name should be: tutorial.<n>.txt, where n is the same as the one
+		from the name of .c file
+

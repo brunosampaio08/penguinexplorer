@@ -1,0 +1,15 @@
+Hello, this is tutorial.1! Here, you'll learn about Linux's and LIBC stack frame and heap structure.
+pstack
+Let's try examining the stack. Right now, we have only one address there. Can you guess what it is?
+This one was a trick question, because this isn't part of our current program. During LIBC startup flow, it'll call your C program main from it's own function, called __libc_start_call_main. Let's concatenate these 8 bytes and checkout which symbol this address points to.
+Type "command x/8xg $sp" so we can check the hexadecimal full address.
+command
+Cool, this is __libc_start_call_main plus 128 bytes. We can also see that the address printed is the concatenation of our current stack's first 8 bytes. Nice. Now let's try checking what line that is.
+Type "command info lines *($sp)" so we can check the line current stack pointer top is pointing to.
+command
+Nice, we can see that main is being called directly by __libc_start_main. That means that libc linked our program to the library and is now calling it's main, like any function you call on your own userspace programs.
+Now let's keep going.
+pstack
+Now we are effectively manipulating the main() stack. First, let's take a look at our program.
+Type "command list main," to check the first 10 lines of main function.
+command
