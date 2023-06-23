@@ -76,7 +76,11 @@ class spBreakpoint(gdb.Breakpoint):
             self.libc_rip = self.libc_rip_sp.dereference().cast(gdb.lookup_type("uint64_t").pointer())
             gdb.set_convenience_variable("libc_rip_sp", self.libc_rip_sp)
             gdb.set_convenience_variable("libc_rip", self.libc_rip)
+
+            self.wsp = watchSP()
+
             gdb.execute("disable "+str(self.number))
+
 
         else:
             # save curr_sp
@@ -114,7 +118,7 @@ class watchSP(gdb.Breakpoint):
             set_logfile("gdb.tmp2", False)
 
             # save curr_sp
-            self.old_sp = self.curr_sp
+            # self.old_sp = self.curr_sp
             # get new sp
             self.curr_sp = gdb.parse_and_eval("$rsp")
             # get the difference to print
@@ -125,7 +129,11 @@ class watchSP(gdb.Breakpoint):
 
             # from SP up, print sp_diff bytes (remember that sp growns down, so it will change for instance
             #   from 20 to 10, so we'll print 16 bytes starting from 10, which will go up to 20
-            gdb.execute("x/"+str(abs(self.sp_diff))+"xb $sp")
+            curr_stack = gdb.execute("x/"+str(abs(self.sp_diff))+"xb $sp", to_string=True)
+            curr_stack = curr_stack.split("\n")
+            curr_stack.reverse()
+            for item in curr_stack[1:]:
+                print(item)
 
             # this above works but TODO find out how to say this to user
             gdb.execute("echo End_stack_change:\\n")
@@ -161,15 +169,32 @@ class tutorialMainBP(gdb.Breakpoint):
         gdb.execute("list *$libc_rip-1,")
         gdb.execute("echo End command info lines *($sp)\\n")
         #print(self.libc_rip.format_string(symbols=True, address=True))
-        gdb.execute("set listsize 10")
+
+        gdb.execute("echo Start command x/2i main\\n")
+        gdb.execute("x/2i main")
+        gdb.execute("echo End command x/2i main\\n")
+
+        gdb.execute("set listsize 5")
         gdb.execute("echo Start command list main,\\n")
         gdb.execute("list main,")
         gdb.execute("echo End command list main,\\n")
 
+        gdb.execute("echo Start command list,\\n")
+        gdb.execute("list")
+        gdb.execute("echo End command list,\\n")
+
+        gdb.execute("echo Start command list my_recursion,\\n")
+        gdb.execute("list my_recursion,")
+        gdb.execute("echo End command list my_recursion,\\n")
+
+        gdb.execute("echo Start pcode\\n")
+        gdb.execute("set listsize 0")
+        gdb.execute("list 1,")
+        gdb.execute("set listsize 5")
+        gdb.execute("echo End pcode\\n")
+
         #gdb.execute("set trace-commands off")
         set_logfile("gdb.tmp", False)
-
-        self.wsp = watchSP()
 
         return False
 

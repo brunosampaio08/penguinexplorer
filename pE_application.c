@@ -4,6 +4,7 @@
 #include <ncurses.h>
 #include <regex.h>
 #include <unistd.h>
+#include <locale.h>
 
 #include "shell.h"
 #include "pE_application.h"
@@ -12,6 +13,8 @@
 #define GDB_TMP_2 "./tmp/gdb.tmp2"
 // TODO make this generic
 #define TUTORIALS_PATH "./bin/tutorials/tutorial.1.txt"
+#define STACK_PATH "./bin/tutorials/stack_file"
+#define INTRO_PATH "./bin/tutorials/intro"
 
 #define LOG_TAG "pE_application"
 #define DEBUG
@@ -37,6 +40,7 @@ enum tutorial_command_t
 {
 	PSTACK,
 	COMMAND,
+	PCODE,
 	PTUTORIAL,
 }t_cmd_type;
 
@@ -52,6 +56,46 @@ void exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_f
 
 void print_tutorial(int tutorial_number, \
 		struct window_desc *tutorial_window, struct window_desc *stack_window, struct window_desc *command_window);
+
+void start_pE(struct window_desc *tutorial_window)
+{
+	// show some info about pE
+	FILE* intro_file;
+	char buffer[BUFFER_MAX_SIZE];
+
+	char tmp_ch;
+
+	intro_file = fopen(INTRO_PATH, "r");
+
+	wclear((*tutorial_window).win);
+	wrefresh((*tutorial_window).win);
+	box((*tutorial_window).win, 0, 0);
+	(*tutorial_window).pointer_y = 1;
+	(*tutorial_window).pointer_x = 1;
+
+	print_to_window("Welcome to penguinExplore! Do you wish to read the intro?(y/n) ", tutorial_window);
+	wgetnstr((*tutorial_window).win, buffer, BUFFER_MAX_SIZE);
+
+	if(buffer[0] != 'y')
+		return;
+
+	while(fgets(buffer, BUFFER_MAX_SIZE, intro_file))
+	{
+		wclear((*tutorial_window).win);
+		wrefresh((*tutorial_window).win);
+		box((*tutorial_window).win, 0, 0);
+		(*tutorial_window).pointer_y = 1;
+		(*tutorial_window).pointer_x = 1;
+
+		print_to_window(buffer, tutorial_window);
+
+		mvwprintw((*tutorial_window).win, (*tutorial_window).height-1, 0, "Press \"n\" continue.");
+		noecho();
+		while((tmp_ch = wgetch((*tutorial_window).win)) != 'n');
+		echo();
+	}
+
+}
 
 int main(int argc, char **argv)
 {
@@ -110,7 +154,7 @@ int main(int argc, char **argv)
 	getmaxyx(stdscr, rows, cols);
 
 	// TODO make this "-6" more generic using DEFINEs
-	prompt_window.height = rows-9;
+	prompt_window.height = rows/3;
 	prompt_window.width = cols/2;
 
 	prompt_window.win = newwin(prompt_window.height, prompt_window.width, prompt_window.starty, prompt_window.startx);
@@ -120,11 +164,11 @@ int main(int argc, char **argv)
 	/* FINISHED PROMPT WINDOW */
 
 	/* START TutorialWindow WINDOW */
-	tutorial_window.height = 9;
+	tutorial_window.height = rows/3+1;
 	tutorial_window.width = cols/2;
 
 	tutorial_window.startx = 0;
-	tutorial_window.starty = rows-9;
+	tutorial_window.starty = rows/3;
 
 	tutorial_window.win = newwin(tutorial_window.height, tutorial_window.width, tutorial_window.starty, tutorial_window.startx);
 
@@ -137,7 +181,7 @@ int main(int argc, char **argv)
 	/* FINISHED TutorialWindow WINDOW */
 
 	/* START MemoryExamination WINDOW */
-	memExam_window.height = (rows/2)+10;
+	memExam_window.height = rows;
 	memExam_window.width = cols/2;
 
 	memExam_window.startx = cols/2;
@@ -152,12 +196,12 @@ int main(int argc, char **argv)
 
 	/* FINISHED MemoryExamination WINDOW */
 
-	/* START MemoryExamination WINDOW */
-	gdb_window.height = rows-((rows/2)+10);
+	/* START GDB WINDOW */
+	gdb_window.height = (rows/3)+1;
 	gdb_window.width = cols/2;
 
-	gdb_window.startx = cols/2;
-	gdb_window.starty = (rows/2)+10;
+	gdb_window.startx = 0;
+	gdb_window.starty = (2*rows)/3;
 
 	gdb_window.win = newwin(gdb_window.height, gdb_window.width, gdb_window.starty, gdb_window.startx);
 
@@ -167,7 +211,9 @@ int main(int argc, char **argv)
 	gdb_window.pointer_y = 1;
 	gdb_window.pointer_x = 1;
 
-	/* FINISHED MemoryExamination WINDOW */
+	/* FINISHED GDB WINDOW */
+
+	start_pE(&tutorial_window);
 
 	// print some stuff on memExam just for fun
 	if (!(gdb_file = fopen(GDB_TMP, "r"))){
@@ -302,15 +348,91 @@ void read_and_print_file(FILE *file, char* start_regex,\
 	// clearerr(file);
 }
 
+int write_stack_file(FILE* file, char* line)
+{
+	char stack_addr[BUFFER_MAX_SIZE];;
+	char buffer[BUFFER_MAX_SIZE];
+
+	int rvalue = 0;
+
+	FILE* tmp;
+
+	regex_t stack_addr_regex;
+
+	pELOG("Started!");
+
+	tmp = tmpfile();
+
+	strcpy(stack_addr, line);
+
+	for(int i = 0; i < strlen(stack_addr); i++)
+	{
+		if(stack_addr[i] == ':')
+		{
+			stack_addr[i] = '\0';
+			break;
+		}
+	}
+
+	pELOG("stack_addr: %s", stack_addr);
+
+	regcomp(&stack_addr_regex, stack_addr, 0);
+
+	while(fgets(buffer, BUFFER_MAX_SIZE, file)){
+		//if(0)
+		if(!regexec(&stack_addr_regex, buffer, 0, NULL, 0))
+		{
+			pELOG("Matched %s!", buffer);
+			rvalue = 1;
+			fputs(line, tmp);
+		}else
+		{
+			pELOG("Not matched %s!", buffer);
+			fputs(buffer, tmp);
+		}
+	}
+
+	rewind(tmp);
+	rewind(file);
+	ftruncate(fileno(file), 0L);
+	while(fgets(buffer, BUFFER_MAX_SIZE, tmp))
+	{
+		pELOG("Putting %s", buffer);
+		fputs(buffer, file);
+	}
+
+	fclose(tmp);
+
+	return rvalue;
+}
+
 void print_stack(struct window_desc* stack_window, FILE* stack_file)
 {
+	int is_last = 0;
+
 	char buffer[BUFFER_MAX_SIZE];
 	char* print_buffer;
+	char stack_addr_buffer[BUFFER_MAX_SIZE];
+
+	// this holds the stack
+	// argument stack_file is gdb output
+	FILE* stack_main_file;
 
 	regex_t fname_start_regex;
 	regex_t fname_stop_regex;
+	regex_t stack_addr_regex;
 
 	pELOG("Started!");
+
+	wclear((*stack_window).win);
+	box((*stack_window).win, 0, 0);
+	wrefresh((*stack_window).win);
+
+	(*stack_window).pointer_y = 1;
+	(*stack_window).pointer_x = 1;
+
+	stack_main_file = fopen(STACK_PATH, "a+");
+	rewind(stack_main_file);
 
 	regcomp(&fname_start_regex, "Begin_stack_change:", REG_EXTENDED);
 	regcomp(&fname_stop_regex, "End_stack_change:", REG_EXTENDED);
@@ -319,27 +441,63 @@ void print_stack(struct window_desc* stack_window, FILE* stack_file)
 		if(!regexec(&fname_start_regex, buffer, 0, NULL, 0)){
 			while(fgets(buffer, BUFFER_MAX_SIZE, stack_file) && regexec(&fname_stop_regex, buffer, 0, NULL, 0))
 			{
-				// all lines should be equalsize so there's no problem in printing aligned to center string
-				print_buffer = buffer;
-				print_buffer[14]='\0';
-				print_to_window(print_buffer, stack_window);
-
-				// TODO maybe align better the prints?
-				wvline((*stack_window).win, ACS_VLINE, 1);
-
-				print_buffer = &(buffer[15]);
-				(*stack_window).pointer_x = (((*stack_window).width-strlen(print_buffer))/2);
-				wmove((*stack_window).win, (*stack_window).pointer_y, (*stack_window).pointer_x);
-				print_to_window(print_buffer, stack_window);
-
-				wmove((*stack_window).win, (*stack_window).pointer_y++, (*stack_window).pointer_x);
-				whline((*stack_window).win, ACS_HLINE, (*stack_window).width-2);
-				wrefresh((*stack_window).win);
+				strcpy(stack_addr_buffer, buffer);
+				if(!write_stack_file(stack_main_file, buffer))
+				{
+					pELOG("Putting %s", buffer);
+					fputs(buffer, stack_main_file);
+				}
+				rewind(stack_main_file);
 			}
 			//wmove((*stack_window).win, (*stack_window).pointer_y++, (*stack_window).pointer_x);
 			break;
 		}
 	}
+
+	// only write until end of last stack, so stack can decrease in size
+
+	for(int i = 0; i < strlen(stack_addr_buffer); i++)
+	{
+		if(stack_addr_buffer[i] == ':')
+		{
+			stack_addr_buffer[i] = '\0';
+			break;
+		}
+	}
+
+	pELOG("stack_addr: %s", stack_addr_buffer);
+
+	regcomp(&stack_addr_regex, stack_addr_buffer, 0);
+
+	is_last = 0;
+
+	while(fgets(buffer, BUFFER_MAX_SIZE, stack_main_file))
+	{
+		if(is_last)
+			break;
+		if(!regexec(&stack_addr_regex, buffer, 0, NULL, 0))
+			is_last = 1;
+
+		// all lines should be equalsize so there's no problem in printing aligned to center string
+		print_buffer = buffer;
+		// 14 is always the size of the address
+		print_buffer[14]='\0';
+		print_to_window(print_buffer, stack_window);
+
+		// TODO maybe align better the prints?
+		wvline((*stack_window).win, ACS_VLINE, 1);
+
+		print_buffer = &(buffer[15]);
+		(*stack_window).pointer_x = (((*stack_window).width-strlen(print_buffer))/2);
+		wmove((*stack_window).win, (*stack_window).pointer_y, (*stack_window).pointer_x);
+		print_to_window(print_buffer, stack_window);
+
+		wmove((*stack_window).win, (*stack_window).pointer_y++, (*stack_window).pointer_x);
+		whline((*stack_window).win, ACS_HLINE, (*stack_window).width-2);
+		wrefresh((*stack_window).win);
+	}
+
+	fclose(stack_main_file);
 
 	pELOG("Leaving!");
 }
@@ -355,6 +513,8 @@ void exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_f
 	long file_position;
 
 	regex_t regex;
+
+	pELOG("Started!");
 
 	strcpy(start_buffer, "Start ");
 
@@ -375,6 +535,8 @@ void exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_f
 	(*tutorial_window).pointer_x = 1;
 	wmove((*tutorial_window).win, (*tutorial_window).pointer_y, (*tutorial_window).pointer_x);
 
+	pELOG("Checking for special chars!");
+
 	if((tmp_str = strchr(command, '*')))
 	{
 		for(int i = strlen(tmp_str)+1; i > 0; i--)
@@ -392,6 +554,8 @@ void exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_f
 		*(tmp_str) = '\\';
 	}
 
+	pELOG("Finished checking for special chars!");
+
 	strcat(start_buffer, command);
 	strcat(end_buffer, command);
 
@@ -400,10 +564,8 @@ void exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_f
 	regcomp(&regex, start_buffer , 0);
 
 	while(fgets(command, BUFFER_MAX_SIZE, tutorial_file)){
-		pELOG("command: %s", command);
 		if(!regexec(&regex, command, 0, NULL, 0))
 		{
-			pELOG("Command regex matched!");
 			fseek(tutorial_file, file_position, SEEK_SET);
 			break;
 		}
@@ -415,6 +577,102 @@ void exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_f
 	read_and_print_file(tutorial_file, start_buffer, end_buffer, tutorial_window, 0, 0, 0);
 
 	fseek(tutorial_file, file_position, SEEK_SET);
+}
+
+void print_code(FILE* tutorial_file, FILE* code_file)
+{
+	FILE* screen_tmp;
+	
+	int rows, cols;
+
+	char buffer[BUFFER_MAX_SIZE];
+
+	char proclnk[BUFFER_MAX_SIZE];
+	char tmp_file[BUFFER_MAX_SIZE];
+	int tmp_fileno;
+	ssize_t r;
+
+	char tmp_ch;
+
+	struct window_desc code_window = {.height = 0,
+					.width = 0, 
+					.starty = 0, 
+					.startx = 0,
+					.pointer_y = 1,
+					.pointer_x = 1};
+
+	struct window_desc comment_window = {.height = 0,
+					.width = 0, 
+					.starty = 0, 
+					.startx = 0,
+					.pointer_y = 1,
+					.pointer_x = 1};
+
+	screen_tmp = tmpfile();
+	tmp_fileno = fileno(screen_tmp);
+	sprintf(proclnk, "/proc/self/fd/%d", tmp_fileno);
+	r = readlink(proclnk, tmp_file, BUFFER_MAX_SIZE);
+	tmp_file[r] = '\0';
+
+	scr_dump(tmp_file);
+
+	getmaxyx(stdscr, rows, cols);
+
+	/* START CODE WINDOW */
+
+	code_window.height = rows-10;
+	code_window.width = cols;
+
+	code_window.win = newwin(code_window.height, code_window.width, code_window.starty, code_window.startx);
+
+	box(code_window.win, 0, 0);
+	wrefresh(code_window.win);
+
+	code_window.pointer_y = 1;
+	code_window.pointer_x = 1;
+	/* FINISHED CODE WINDOW */
+
+	/* START COMMENT WINDOW */
+	comment_window.height = 10;
+	comment_window.width = cols;
+
+	comment_window.starty = rows-10;
+
+	comment_window.win = newwin(comment_window.height, comment_window.width, comment_window.starty, comment_window.startx);
+
+	box(comment_window.win, 0, 0);
+	wrefresh(comment_window.win);
+
+	comment_window.pointer_y = 1;
+	comment_window.pointer_x = 1;
+
+	/* FINISHED TutorialWindow WINDOW */
+
+	read_and_print_file(code_file, "Start pcode", "End pcode", &code_window, 0, 0, 0);
+
+	while(fgets(buffer, BUFFER_MAX_SIZE, tutorial_file) && strcmp(strtok(strdup(buffer), " \n"), "pcode"))
+	{
+		// clear window everytime we'll print new line of comment
+		wclear(comment_window.win);
+		wrefresh(comment_window.win);
+		box(comment_window.win, 0, 0);
+		comment_window.pointer_y = 1;
+		comment_window.pointer_x = 1;
+
+		print_to_window(buffer, &comment_window);
+
+		mvwprintw(comment_window.win, comment_window.height-1, 0, "Press \"n\" to continue.");
+		noecho();
+		while((tmp_ch = wgetch(comment_window.win)) != 'n');
+		echo();
+	}
+
+	rewind(code_file);
+
+	scr_restore(tmp_file);
+	doupdate();
+
+	fclose(screen_tmp);
 }
 
 int parse_buffer(char* buffer)
@@ -430,6 +688,8 @@ int parse_buffer(char* buffer)
 		return PSTACK;
 	else if(!strcmp(token, "command"))
 		return COMMAND;
+	else if (!strcmp(token, "pcode"))
+		return PCODE;
 	else
 		return PTUTORIAL;
 
@@ -458,14 +718,17 @@ void print_tutorial(int tutorial_number, \
 	(*stack_window).pointer_y = 1;
 	(*stack_window).pointer_x = 1;
 
+	// TODO fix this gambiarra
+	FILE *aaa;
+	aaa = fopen(STACK_PATH, "w+");
+	fclose(aaa);
+
 	while(fgets(buffer, BUFFER_MAX_SIZE, tutorials_txt))
 	{
 		pELOG("buffer: %s", buffer);
 
 		command = parse_buffer(buffer);
 		pELOG("command: %d", command);
-
-		pELOG("buffer: %s", buffer);
 
 		switch(command)
 		{
@@ -475,6 +738,9 @@ void print_tutorial(int tutorial_number, \
 
 			case COMMAND:
 				exec_tutorial_command(command_window, gdb_file);
+				break;
+			case PCODE:
+				print_code(tutorials_txt, gdb_file);
 				break;
 
 			case PTUTORIAL:

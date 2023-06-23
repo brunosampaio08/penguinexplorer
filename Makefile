@@ -17,6 +17,7 @@ shell.o: shell.c shell.h pE_application.h
 tutorial.1: ./tutorials/tutorial.1.c
 	$(shell mkdir -p $(binary_dir)/$(tutorials_dir))
 	$(shell cp $(tutorials_dir)/tutorial.1.txt $(binary_dir)/$(tutorials_dir))
+	$(shell cp intro $(binary_dir)/$(tutorials_dir))
 	$(CC) $(CFLAGS) -o $(binary_dir)/$(tutorials_dir)/tutorial.1 $(tutorials_dir)/tutorial.1.c
 
 clean:

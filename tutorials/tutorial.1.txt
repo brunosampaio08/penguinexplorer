@@ -1,15 +1,101 @@
-Hello, this is tutorial.1! Here, you'll learn about Linux's and LIBC stack frame and heap structure.
+Ola, esse e o tutorial.1! Aqui, voce vai aprender sobre a estrutura da stack (pilha, em portugues) e os stack frames sob o ponto de vista do Sistema Operacional Linux e do compilador.
+Para isso, analisaremos a execucao de um simples codigo em C. Primeiro, vamos dar uma olhada no codigo.
+pcode
+Se trata de um codigo simples, com duas funcoes. Primeiro temos o ponto de entrada da execucao, a funcao main() que sera chamada pela libc. Alem disso, temos uma simples funcao recursiva, que sera chamada no maximo N vezes, onde N e o argumento passado.
+Para a analise, a execucao sera interrompida toda vez que o ponteiro para o topo do stack (chamado de Stack Pointer, %sp ou %rsp para o x86) sofrer alguma alteracao. Nesse momento, faremos algumas analises e consideracoes.
+pcode
+Vamos comecar.
 pstack
-Let's try examining the stack. Right now, we have only one address there. Can you guess what it is?
-This one was a trick question, because this isn't part of our current program. During LIBC startup flow, it'll call your C program main from it's own function, called __libc_start_call_main. Let's concatenate these 8 bytes and checkout which symbol this address points to.
-Type "command x/8xg $sp" so we can check the hexadecimal full address.
+Primeiro, faremos algumas consideracoes acerca da stack. A janela da direita sera usada para mostrar a stack toda vez que o ponteiro para o topo for alterado. Lembre-se que a stack cresce para baixo, ou seja, o ponteiro e decrementado de N bytes toda vez que e alterado.
+Na janela, sao mostrados 9 valores distintos em hexadecimal. O primeiro valor, isolado por uma barra horizontal, representa o valor de %sp, ou o endereco do topo da stack. Os outros 8 valores correspondem a 8 bytes, do menos significativo para o mais significativo.
+Note que isso significa que os bytes estao representados na ordem reversa, isto e, devemos le-los da direita para a esquerda. Entretanto, cada byte unico esta representado na ordem tradicional, e deve ser lido da esquerda para a direita.
+Por exemplo, a linha: | 0xff | 0x01 0x00 0x00 0x00 0x02 0x00 0x00 0x00 | representa: O endereco | 0xff | aponta para o valor | 0x0000000200000001 |.
+Now, let's try examining the stack. Right now, we have only one address there. Can you guess what it is?
+This one was a trick question, because this isn't part of our running application. During libc startup flow, it'll call your C program main from it's own function, called __libc_start_call_main. Let's concatenate these 8 bytes and checkout which symbol this address points to.
+Type "command x/8xg $sp" so we can check the hexadecimal full address. Esse comando nos mostra o valor de %sp e o simbolo associado, caso haja um.
 command
-Cool, this is __libc_start_call_main plus 128 bytes. We can also see that the address printed is the concatenation of our current stack's first 8 bytes. Nice. Now let's try checking what line that is.
-Type "command info lines *($sp)" so we can check the line current stack pointer top is pointing to.
+Cool, this is __libc_start_call_main plus 128 bytes. We can also see that the address printed is the concatenation of our current stack's first 8 bytes.
+Notice that address is printed right to left on our stack, last printed byte is actually address first byte. Bytes are printed from right to left as you'd expect.
+Now let's try checking what line that is.
+Type "command info lines *($sp)" so we can check the line current stack pointer top is pointing to. Esse comando mostra a linha de codigo associada ao endereco apontado por %sp.
 command
-Nice, we can see that main is being called directly by __libc_start_main. That means that libc linked our program to the library and is now calling it's main, like any function you call on your own userspace programs.
+Nice, we can see that main is being called directly by __libc_start_main. That means that libc linked our program to the library and is now calling our main(), like any function you call on your own userspace programs. Note que o endereco e o mesmo (porem alinhado) do que o que esta presente no inicio da nossa stack.
+Explaining in a little more detail, every time a call is made by an application, the return address must be stored so it know where to go back to after the return. This is made by pushing %pc (called %rip for x86_64) to the stack. This means that the top of the previous stack frame, i.e., the caller frame, is always the return address.
 Now let's keep going.
 pstack
-Now we are effectively manipulating the main() stack. First, let's take a look at our program.
-Type "command list main," to check the first 10 lines of main function.
+Here, another interesting thing happened. Current value on top of the stack is an 8 bytes 0x1. What's that? Let's check the assembly code to try and figure out.
+Type "command x/2i main" to print the first 2 machine code instructions from main.
 command
+Great. Here, we can see that the first instruction is pushing %rbp. That register is the stack frame register, and it points to start of the previous stack, which is libc's stack, and it's value is 0x01.
+One important thing to notice is that this is a VIRTUAL ADDRESS, which does not correspond to the real memory address, called PHYSICAL ADDRESS. The only software that knows the real address is the operating system, and it gets it by requesting to the MMU, but that's out of our scope for this first class.
+Let's keep going.
+pstack
+Now we are looking at the main() stack frame. First, let's take a look at our program.
+Type "command list main," to check the first 5 lines of main function.
+command
+Can you guess now to what our current stack pointer points to?
+If you said "to the top of our local variables allocation space", you're correct! Now, before I explain to you, trying figuring out: Why are there 16 bytes allocated instead of just the 12 we have (3 integers)? Where are the values we assigned to them?
+If you could'nt understand, don't worry! I'll tell you! First, Linux aligns the stack memory (for the x86_64 architecture, of course) to 16 bytes, so that it fits the biggest thing possible. In this case, the alignment is due to the x86_64 SSE instruction. But that's out of our scope.
+Second, the values aren't there yet, because right now the code is just manipulating the stack size. Next time the stack changes, we'll get back to those addresses.
+Also, remember that memory is printed right to left, down to up. That means that the first 4 bytes on our last printed address is thrash (not allocated), next 4 bytes concatenated are our first local value, and so on.
+Ok. So now, before I get you clueless again, let's give you a preemptive (pun intended) clue. Let's take a look at the full main.
+Type "command list," to print main from where we stopped last time.
+command
+Ok. Now let's keep going.
+pstack
+Now, what happened on our code flow that should change the stack? Think about what happened when we first started main. What's the first instruction of when we jump to a new function?
+If you guessed "push the previous %rip" you guessed right! The top of our stack is now the address that we should return to when our function returns. Before we keep going, let's also look to our previous addresses.
+Notice our previously allocated 16 bytes (our main() local vars). The last 12 changed! That's right, they now store the values we assigned to our local variables!
+Let' list main again. Type "command list main," to list the first 5 lines.
+command
+Ok, now try to figure out which address is each var.
+Ok, first one is easy. Start of local vars space minus 4 bytes is the start of our first var, which has the value 3 (if you're confused, remember that bytes are printed left to right, addresses are printed right to left and down to up. Next one is 13 in hexadecimal, so also easy.
+The next value is tricky. It should be -1, but instead it's the highest number possible for a 4 byte value, 0xffffffff. Why?
+It's because our variable is a SIGNED integer, which means that it is stored as a two's complement in memory (again, x86_64 choice).
+Type "command list my_recursion," so we can see the first lines of callee function.
+command
+Ok, now let's keep going.
+pstack
+Stack changed again! What happened now? Remember main code flow!
+Yes! We have pushed previous %rbp, which is the pointer to the top of our previous frame. You can even concatenate the 8 bytes on your head and check to where it points to on our stack.
+If you figured out "the start of main()" - the caller - frame, you are correct.
+pstack
+Stack changed, and this time we have 16 new bytes. What are those for? We do not have locals :monkaHmm:
+Function arguments are treated as locals and stored on stack! So our stack frame expandaded 16 bytes (why 16? Remember!) to keep the argument we passed to my_recursion()! They are also all thrash, because we are not yet assigning values!
+pstack
+Legal, a stack cresceu mais 8 bytes. Analisando os dados do topo da stack, voce consegue descobrir o que aconteceu no fluxo do codigo?
+Isso mesmo! Nossa recursao foi chamada mais uma vez e %rip e foi inserido no topo da pilha. Alem disso, note que o primeiro byte da area de variaveis locais do frame atual mudou para o valor esperado de i, que nesse momento e 3.
+Vamos continuar mais uma vez, mas antes, voce consegue descobrir o que acontecera?
+pstack
+E ai, voce estava certo? Se disse que o apontador para o inicio do frame anterior seria inserido na pilha, voce estava correto! Vamos continuar.
+pstack
+Mais variaveis locais foram alocadas. Voce esta pegando o jeito certo? Tente adivinhar qual sera o valor do primeiro byte do espaco de variaveis locais na proxima atualizacao.
+pstack
+Eai, acertou? Se voce disse "recebera o valor de i para a segunda iteracao, que e 2" voce estava certo! Agora, vamos atualizar o stack algumas vezes em sequencia. Tente entender o que esta acontecendo. Te vejo jaja.
+pstack
+pstack
+2
+pstack
+Opa, parece que nossa stack esta comecando a ficar grande. Apos o push de mais um $rip, agora precisamos de duas paginas da janela de stack para conseguir manter tudo. Tente descobrir apos a proxima atualizacao em qual chamada da recursao estamos com base no valor de i que o frame atual contem.
+pstack
+pstack
+Eai, consegue descobrir em que iteracao estamos?
+Isso mesmo, agora i == 0 e podemos comecar a retornar das iteracoes!
+pstack
+Eita, nossa stack diminuiu! E claro que, do ponto de vista da memoria, os valores permanecem la. Eles so nao sao mais acessiveis, pois agora $sp aponta para um novo topo, que e o endereco mostrado. O que esse endereco contem, voce consegue descobrir?
+Isso mesmo, o endereco contem o $pc para retorno a chamada anterior. Vamos continuar.
+pstack
+Estamos de volta a nossa pagina original da stack. Note que agora que retornamos ao frame da chamada anterior, o topo da stack aponta para o fim da area de variaveis locais. Consegue encontrar o valor atual de i? Spoiler: ele e um a mais do que o valor da chamada da qual acabamos de retornar.
+pstack
+Retornamos mais uma vez! E agora o topo da stack contem novamente o endereco para retorno a instrucao da chamada anterior, que sera usado pelo processador para retomar a execucao.
+pstack
+Mais uma vez, $sp aponta para o fim da area de variaveis locais. Consegue encontrar o valor de i?
+pstack
+pstack
+Chegamos a primeira chamda, onde i == 3, que corresponde ao valor da variavel local declarada na main(). Vamos continuar mais um pouco.
+pstack
+pstack
+Estamos de volta ao frame de main()! Vamos continuar mais um pouco e finalizar a execucao.
+pstack
+Note que agora so nos resta retornar o controle para a libc e deixa-la fazer a limpeza necessaria, e fim!
+Parabens, voce concluiu o primeiro tutorial! Espero que agora os conceitos de stack e frame estejam um pouco mais claros! Ate a proxima!
