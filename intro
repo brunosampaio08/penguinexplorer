@@ -1,6 +1,7 @@
-Ola! Entao e a sua primeira vez utilizando o penguinExplorer! Vamos fazer um tour!
-No canto superior esquerdo, temos o prompt, onde voce pode digitar quase qualquer comando GNU/Linux e ele sera executado.
-No canto inferior esquerdo, temos a janela de comando. Ela e utilizada em tutoriais.
-Do lado direito da tela, temos a janela de stack. Nela, serao mostrados os enderecos e valores nos enderecos da stack do programa executado.
-Como e sua primeira vez, recomendo que apos o fim dessa breve introducao, execute o primeiro tutorial, digitando "tutorial -n 1" no prompt.
-Agora, vou mover voce para o prompt para que possa comecar a utilizacao. Ate mais!
+Hi! So this is your first time using penguinExplorer! Let's have a tour.
+On the upper left corner, we have the prompt. This is where you can type ~almost~ any GNU/Linux shell command and it will run.
+On the lower left corner, we have the command window. This will be used in tutorials, and you will run debugging commands on it.
+Where you are reading this, it's the tutorial window. Some important info about usage and the tutorials will be printed here.
+On the right side, we have the stack window. There, addresses and values of the running program's stack and frame will be shown.
+If this is your first time, I recommend you start by running the first tutorial. When you get control of the prompt, type "tutorial -n 1" and it'll start.
+Now, I'll move you to the prompt and you're free. Bye, see you soon!
