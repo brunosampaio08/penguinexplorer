@@ -52,7 +52,7 @@ void read_and_print_file(FILE *file, char* start_regex,\
 
 void print_stack(struct window_desc* stack_window, FILE* stack_file);
 
-void exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_file);
+void exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_file, char* command);
 
 void print_tutorial(int tutorial_number, \
 		struct window_desc *tutorial_window, struct window_desc *stack_window, struct window_desc *command_window);
@@ -164,7 +164,7 @@ int main(int argc, char **argv)
 	/* FINISHED PROMPT WINDOW */
 
 	/* START TutorialWindow WINDOW */
-	tutorial_window.height = rows/3+1;
+	tutorial_window.height = rows/3;
 	tutorial_window.width = cols/2;
 
 	tutorial_window.startx = 0;
@@ -231,7 +231,24 @@ int main(int argc, char **argv)
 		wrefresh(prompt_window.win);
 		wgetnstr(prompt_window.win, unparsed_cmd, CMD_MAX_SIZE);
 
-		if(!strcmp(strtok(unparsed_cmd," "), "tutorial")){
+		// If command is some custom command or some problematic string,
+		// check and treat it according
+		if((int)strlen(unparsed_cmd) == 0){ // if it's an empty line, i.e. just \n
+			if(prompt_window.pointer_y >= (prompt_window.height-2)){
+				char tmp_ch;
+				mvwprintw(prompt_window.win, prompt_window.height-1, 0, "Page End. Press \"n\" to go to next page.");
+				noecho();
+				while((tmp_ch = wgetch(prompt_window.win)) != 'n');
+				wclear(prompt_window.win);
+				wrefresh(prompt_window.win);
+				box(prompt_window.win, 0, 0);
+				prompt_window.pointer_y = 1;
+				prompt_window.pointer_x = 1;
+				echo();
+			}
+			continue;
+		}
+		if(!strcmp(strtok(unparsed_cmd," "), "tutorial")){ // if it's a tutorial command
 			if(!strcmp(strtok(NULL," "), "-n")){
 
 				getcwd(tmp_str, PATH_MAX_SIZE);
@@ -246,11 +263,12 @@ int main(int argc, char **argv)
 				print_tutorial(1, &tutorial_window, &memExam_window, &gdb_window);
 			}
 			else{
-				mvwprintw(prompt_window.win, prompt_window.pointer_y++, prompt_window.startx+1, "Run tutorial but couldn't get option!");
+				print_to_window("Run tutorial but couldn't get option!\n", &prompt_window);
+				print_to_window("Tutorial usage is: tutorial -n <tutorial_num>\n", &prompt_window);
 			}
 			continue;
 		}
-
+		// if not, just run the command
 		return_value = run_shell(unparsed_cmd);
 
 		if(return_value == -1){
@@ -502,7 +520,7 @@ void print_stack(struct window_desc* stack_window, FILE* stack_file)
 	pELOG("Leaving!");
 }
 
-void exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_file)
+void exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_file, char* buffer_command)
 {
 	char command[CMD_MAX_SIZE];
 	char start_buffer[BUFFER_MAX_SIZE];
@@ -527,9 +545,25 @@ void exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_f
 	(*tutorial_window).pointer_y = 1;
 	(*tutorial_window).pointer_x = 1;
 
-	mvwprintw((*tutorial_window).win, (*tutorial_window).pointer_y, (*tutorial_window).pointer_x, "command > ");
+	// replace \n so we can compare with command
+	buffer_command[strcspn(buffer_command, "\n")] = '\0';
 
-	wgetnstr((*tutorial_window).win, command, CMD_MAX_SIZE);
+	do{
+		mvwprintw((*tutorial_window).win, (*tutorial_window).pointer_y, (*tutorial_window).pointer_x, "command > ");
+
+		wgetnstr((*tutorial_window).win, command, CMD_MAX_SIZE);
+
+		// if it's just command, tutorial creator doesn't want us to check, so just go ahead
+		if(!strcmp(buffer_command, "command")){
+			break;
+		}
+		else if(strcmp(command, buffer_command)){
+			(*tutorial_window).pointer_y++;
+			print_to_window("Typed command do not match requested. Please try again.\n", tutorial_window);
+		}else{
+			break;
+		}
+	}while(true);
 
 	(*tutorial_window).pointer_y++;
 	(*tutorial_window).pointer_x = 1;
@@ -737,7 +771,7 @@ void print_tutorial(int tutorial_number, \
 				break;
 
 			case COMMAND:
-				exec_tutorial_command(command_window, gdb_file);
+				exec_tutorial_command(command_window, gdb_file, buffer);
 				break;
 			case PCODE:
 				print_code(tutorials_txt, gdb_file);
