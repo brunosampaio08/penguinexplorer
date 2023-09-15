@@ -140,6 +140,12 @@ int main(int argc, char **argv)
 	char pwd[PATH_MAX_SIZE];
 	char *path;
 
+	//struct stat st = {0};
+
+	// create tmp files folder if it doesn't exist
+	// no node to bother checking for existance, will only log an error
+	mkdir("tmp", 0700);
+
 	stderr = freopen("./tmp/tmp_err", "w", stderr);
 	// set stderr buffering to line buffering instead of block
 	setvbuf(stderr, NULL, _IOLBF, 0);
@@ -309,7 +315,7 @@ int main(int argc, char **argv)
 			mvwprintw(prompt_window.win, prompt_window.pointer_y++, prompt_window.startx+1, "Command failed. Are you sure it exists?");
 			continue;
 		}
-		read_and_print_file(gdb_file, "\\+p unparsed_cmd", "\\+continue", &memExam_window, 0, 0, REG_EXTENDED);
+		//read_and_print_file(gdb_file, "\\+p unparsed_cmd", "\\+continue", &memExam_window, 0, 0, REG_EXTENDED);
 		output_file = fopen(path, "rw");
 		read_and_print_file(output_file, ".*", "^$", &prompt_window, 1, 0, REG_EXTENDED);
 		fclose(output_file);
