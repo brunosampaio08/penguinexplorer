@@ -22,6 +22,7 @@
 #define CMD_MAX_SIZE 1024
 // this leaves space for tutorial.<n> size to range n = {1..99999999999999}
 #define PATH_MAX_SIZE CMD_MAX_SIZE-24
+#define TUTORIAL_MAX_NUM 15
 #define BUFFER_MAX_SIZE 1024
 
 void gdb_run(char *str) {}
@@ -135,6 +136,8 @@ int main(int argc, char **argv)
 
 	char unparsed_cmd[CMD_MAX_SIZE];
 	char tmp_str[CMD_MAX_SIZE];
+	char tutorial_num[TUTORIAL_MAX_NUM];
+	char pwd[PATH_MAX_SIZE];
 	char *path;
 
 	stderr = freopen("./tmp/tmp_err", "w", stderr);
@@ -218,10 +221,10 @@ int main(int argc, char **argv)
 	// print some stuff on memExam just for fun
 	if (!(gdb_file = fopen(GDB_TMP, "r"))){
 		perror("Could not open GDB_TMP");
-		return -1;
+		//return -1;
+	}else{
+		read_and_print_file(gdb_file, "File .*\\.[ch]:", "^\\s*$", &memExam_window, 1, 0, REG_EXTENDED);
 	}
-
-	read_and_print_file(gdb_file, "File .*\\.[ch]:", "^\\s*$", &memExam_window, 1, 0, REG_EXTENDED);
 
 	path = shell_start();
 
@@ -234,6 +237,9 @@ int main(int argc, char **argv)
 		// If command is some custom command or some problematic string,
 		// check and treat it according
 		if((int)strlen(unparsed_cmd) == 0){ // if it's an empty line, i.e. just \n
+			// if it's the last line we need to clear the window
+			// can't use print_to_window because not printing anything,
+			// so hardcode it
 			if(prompt_window.pointer_y >= (prompt_window.height-2)){
 				char tmp_ch;
 				mvwprintw(prompt_window.win, prompt_window.height-1, 0, "Page End. Press \"n\" to go to next page.");
@@ -251,11 +257,39 @@ int main(int argc, char **argv)
 		if(!strcmp(strtok(unparsed_cmd," "), "tutorial")){ // if it's a tutorial command
 			if(!strcmp(strtok(NULL," "), "-n")){
 
-				getcwd(tmp_str, PATH_MAX_SIZE);
+				getcwd(pwd, PATH_MAX_SIZE);
+				strcpy(tutorial_num, strtok(NULL," "));
 
-				strcat(tmp_str, "/bin/tutorials/tutorial.");
-				strcat(tmp_str, strtok(NULL," "));
-				strcpy(unparsed_cmd, tmp_str);
+				// set unparsed_cmd to binary path
+				strcpy(unparsed_cmd, pwd);
+				strcat(unparsed_cmd, "/bin/tutorials/tutorial.");
+				strcat(unparsed_cmd, tutorial_num);
+
+				// create gdb --batch command string and run it first
+				// gdb --batch --cd=<PWD>/tutorials --command=<PWD>/tutorials/tutorial.<n>.gdb <PWD>/bin/tutorials/tutorial.<n>
+				// gdb --batch --cd=
+				strcpy(tmp_str, "gdb --batch --cd=");
+
+				// gdb --batch --cd=<PWD>/tutorials --command=
+				strcat(tmp_str, pwd);
+				strcat(tmp_str, "/tutorials --command=");
+
+				// gdb --batch --cd=<PWD>/tutorials --command=<PWD>/tutorials/tutorial.<n>.gdb <PWD>/bin/tutorials/tutorial.<n>
+				strcat(tmp_str, pwd);
+				strcat(tmp_str, "/tutorials/tutorial.");
+				strcat(tmp_str, tutorial_num);
+				strcat(tmp_str, ".gdb ");
+				strcat(tmp_str, unparsed_cmd);
+
+				pELOG("unparsed_cmd: %s", unparsed_cmd);
+				pELOG("gdb_cmd: %s", tmp_str);
+
+				return_value = run_shell(tmp_str);
+
+				if(return_value) {
+					pELOG("run_shell return: %d", return_value);
+					continue;
+				}
 
 				return_value = run_shell(unparsed_cmd);
 
