@@ -43,7 +43,10 @@ enum tutorial_command_t
 	COMMAND,
 	PCODE,
 	PTUTORIAL,
+	EXIT_CMD,
 }t_cmd_type;
+
+void print_code(FILE* tutorial_file, FILE* code_file);
 
 void print_to_window(char* message, struct window_desc *window);
 
@@ -53,7 +56,7 @@ void read_and_print_file(FILE *file, char* start_regex,\
 
 void print_stack(struct window_desc* stack_window, FILE* stack_file);
 
-void exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_file, char* command);
+int exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_file, char* command);
 
 void print_tutorial(int tutorial_number, \
 		struct window_desc *tutorial_window, struct window_desc *stack_window, struct window_desc *command_window);
@@ -560,7 +563,7 @@ void print_stack(struct window_desc* stack_window, FILE* stack_file)
 	pELOG("Leaving!");
 }
 
-void exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_file, char* buffer_command)
+int exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_file, char* buffer_command)
 {
 	char command[CMD_MAX_SIZE];
 	char start_buffer[BUFFER_MAX_SIZE];
@@ -589,14 +592,58 @@ void exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_f
 	buffer_command[strcspn(buffer_command, "\n")] = '\0';
 
 	do{
+
+		if((*tutorial_window).pointer_y >= ((*tutorial_window).height-2)){
+			char tmp_ch;
+			mvwprintw((*tutorial_window).win, (*tutorial_window).height-1, 0, "Page End. Press \"n\" to go to next page.");
+			noecho();
+			while((tmp_ch = wgetch((*tutorial_window).win)) != 'n');
+			wclear((*tutorial_window).win);
+			wrefresh((*tutorial_window).win);
+			box((*tutorial_window).win, 0, 0);
+			(*tutorial_window).pointer_y = 1;
+			(*tutorial_window).pointer_x = 1;
+			echo();
+		}
+
 		mvwprintw((*tutorial_window).win, (*tutorial_window).pointer_y, (*tutorial_window).pointer_x, "command > ");
 
 		wgetnstr((*tutorial_window).win, command, CMD_MAX_SIZE);
 
-		// if it's just command, tutorial creator doesn't want us to check, so just go ahead
+		// an empty command could cause some troubles, so just do nothing
+		if(strlen(command) == 0){
+			(*tutorial_window).pointer_y++;
+			continue;
+		}
+		// if it's just command, tutorial creator doesn't want us to check, so
+		// first check for special commands, then go ahead
 		if(!strcmp(buffer_command, "command")){
+			// let's treat some special commands, like to reprint code or to leave tutorial
+			if(!strcmp(command, "help")){
+				(*tutorial_window).pointer_y++;
+				print_to_window("Built-in commands for 'Command' window:\n", tutorial_window);
+				print_to_window("help: Display this help!\n", tutorial_window);
+				print_to_window("cancel: Go back to tutorial.\n", tutorial_window);
+				print_to_window("exit: leave tutorial and go back to shell.\n", tutorial_window);
+				print_to_window("pcode: show code again.\n", tutorial_window);
+				return 0;
+			}
+			if(!strcmp(command, "cancel")){
+				return 0;
+			}
+			if(!strcmp(command, "exit")){
+				return EXIT_CMD;
+			}
+			else if(!strcmp(command, "pcode")){
+				FILE* tfile;
+				tfile = fopen(GDB_TMP_2, "r");
+				print_code(NULL, tfile);
+				return 0;
+			}
 			break;
 		}
+		// else, this came from a tutorial and developer wants us to check
+		// if user typed correctly
 		else if(strcmp(command, buffer_command)){
 			(*tutorial_window).pointer_y++;
 			print_to_window("Typed command do not match requested. Please try again.\n", tutorial_window);
@@ -651,6 +698,8 @@ void exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_f
 	read_and_print_file(tutorial_file, start_buffer, end_buffer, tutorial_window, 0, 0, 0);
 
 	fseek(tutorial_file, file_position, SEEK_SET);
+
+	return 0;
 }
 
 void print_code(FILE* tutorial_file, FILE* code_file)
@@ -724,17 +773,25 @@ void print_code(FILE* tutorial_file, FILE* code_file)
 
 	read_and_print_file(code_file, "Start pcode", "End pcode", &code_window, 0, 0, 0);
 
-	while(fgets(buffer, BUFFER_MAX_SIZE, tutorial_file) && strcmp(strtok(strdup(buffer), " \n"), "pcode"))
+	if(tutorial_file)
 	{
-		// clear window everytime we'll print new line of comment
-		wclear(comment_window.win);
-		wrefresh(comment_window.win);
-		box(comment_window.win, 0, 0);
-		comment_window.pointer_y = 1;
-		comment_window.pointer_x = 1;
+		while(fgets(buffer, BUFFER_MAX_SIZE, tutorial_file) && strcmp(strtok(strdup(buffer), " \n"), "pcode"))
+		{
+			// clear window everytime we'll print new line of comment
+			wclear(comment_window.win);
+			wrefresh(comment_window.win);
+			box(comment_window.win, 0, 0);
+			comment_window.pointer_y = 1;
+			comment_window.pointer_x = 1;
 
-		print_to_window(buffer, &comment_window);
+			print_to_window(buffer, &comment_window);
 
+			mvwprintw(comment_window.win, comment_window.height-1, 0, "Press \"n\" to continue.");
+			noecho();
+			while((tmp_ch = wgetch(comment_window.win)) != 'n');
+			echo();
+		}
+	}else{
 		mvwprintw(comment_window.win, comment_window.height-1, 0, "Press \"n\" to continue.");
 		noecho();
 		while((tmp_ch = wgetch(comment_window.win)) != 'n');
@@ -764,6 +821,8 @@ int parse_buffer(char* buffer)
 		return COMMAND;
 	else if (!strcmp(token, "pcode"))
 		return PCODE;
+	else if(!strcmp(token, "EXIT"))
+		return EXIT_CMD;
 	else
 		return PTUTORIAL;
 
@@ -811,7 +870,8 @@ void print_tutorial(int tutorial_number, \
 				break;
 
 			case COMMAND:
-				exec_tutorial_command(command_window, gdb_file, buffer);
+				if(EXIT_CMD == exec_tutorial_command(command_window, gdb_file, buffer))
+					goto EXIT;
 				break;
 			case PCODE:
 				print_code(tutorials_txt, gdb_file);
@@ -832,10 +892,26 @@ void print_tutorial(int tutorial_number, \
 				while((tmp_ch = wgetch((*tutorial_window).win)) != 'n')
 				{
 					pELOG("tmp_ch = %c", tmp_ch);
+					// if we are waiting after tutorial was printed
+					// user can type 'q' and then 'c' to type a command
+					// if user types command "exit", exit from tutorial mode
+					if(tmp_ch == 'q')
+					{
+						if((tmp_ch = wgetch((*tutorial_window).win)) == 'c')
+						{
+							echo();
+							strcpy(buffer, "command");
+							if(EXIT_CMD == exec_tutorial_command(command_window, gdb_file, buffer))
+							{
+								goto EXIT;
+							}
+							mvwprintw((*tutorial_window).win, (*tutorial_window).height-1, 0, "Press \"n\" continue.");
+							noecho();
+						}
+					}
 				}
 				echo();
 				break;
-
 			default:
 				pELOG("Error reading tutorial file. Exiting.");
 				goto EXIT;
