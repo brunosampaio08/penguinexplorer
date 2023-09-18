@@ -38,7 +38,7 @@ void print_stack(struct window_desc* stack_window, FILE* stack_file);
 
 int exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_file, char* command);
 
-void print_tutorial(int tutorial_number, \
+void print_tutorial(char* tutorial_number, \
 		struct window_desc *tutorial_window, struct window_desc *stack_window, struct window_desc *command_window);
 
 void gdb_run(char *str);

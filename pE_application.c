@@ -12,7 +12,7 @@
 #define GDB_TMP "./tmp/gdb.tmp"
 #define GDB_TMP_2 "./tmp/gdb.tmp2"
 // TODO make this generic
-#define TUTORIALS_PATH "./bin/tutorials/tutorial.1.txt"
+//#define TUTORIALS_PATH "./bin/tutorials/tutorial.1.txt"
 #define STACK_PATH "./bin/tutorials/stack_file"
 #define INTRO_PATH "./bin/tutorials/intro"
 
@@ -245,13 +245,16 @@ int main(int argc, char **argv)
 				// gdb --batch --cd=
 				strcpy(tmp_str, "gdb --batch --cd=");
 
-				// gdb --batch --cd=<PWD>/tutorials --command=
-				strcat(tmp_str, pwd);
-				strcat(tmp_str, "/tutorials --command=");
-
-				// gdb --batch --cd=<PWD>/tutorials --command=<PWD>/tutorials/tutorial.<n>.gdb <PWD>/bin/tutorials/tutorial.<n>
+				// gdb --batch --cd=<PWD>/tutorials/tutorial.<n>/ --command=
 				strcat(tmp_str, pwd);
 				strcat(tmp_str, "/tutorials/tutorial.");
+				strcat(tmp_str, tutorial_num);
+				strcat(tmp_str, " --command=");
+
+				// gdb --batch --cd=<PWD>/tutorials --command=<PWD>/tutorials/tutorial.<n>/tutorial.<n>.gdb <PWD>/bin/tutorials/tutorial.<n>
+				//strcat(tmp_str, pwd);
+				//strcat(tmp_str, "/tutorials/tutorial.");
+				strcat(tmp_str, "tutorial.");
 				strcat(tmp_str, tutorial_num);
 				strcat(tmp_str, ".gdb ");
 				strcat(tmp_str, unparsed_cmd);
@@ -268,8 +271,12 @@ int main(int argc, char **argv)
 
 				return_value = run_shell(unparsed_cmd);
 
+				// set str_tmp to tutorials txt path
+				strcpy(tmp_str, unparsed_cmd);
+				strcat(tmp_str, ".txt");
+
 				// TODO make tutorial_number dynamic
-				print_tutorial(1, &tutorial_window, &memExam_window, &gdb_window);
+				print_tutorial(tmp_str, &tutorial_window, &memExam_window, &gdb_window);
 			}
 			else{
 				print_to_window("Run tutorial but couldn't get option!\n", &prompt_window);
@@ -795,7 +802,7 @@ int parse_buffer(char* buffer)
 	return -1;
 }
 
-void print_tutorial(int tutorial_number, \
+void print_tutorial(char* tutorial_number, \
 		struct window_desc *tutorial_window, struct window_desc *stack_window, struct window_desc *command_window)
 {
 	FILE *tutorials_txt;
@@ -807,7 +814,7 @@ void print_tutorial(int tutorial_number, \
 
 	pELOG("Started!");
 
-	tutorials_txt = fopen(TUTORIALS_PATH, "r");
+	tutorials_txt = fopen(tutorial_number, "r");
 	gdb_file = fopen(GDB_TMP_2, "r");
 
 	wclear((*stack_window).win);
