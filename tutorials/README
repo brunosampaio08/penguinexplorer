@@ -1,9 +1,14 @@
 # How to make a tutorial:
 
-Every tutorial should be composed of 4 files:
+Every tutorial should be composed of 5 files:
 	1-) A .c file that'll be run by exec, name should be: tutorial.<n>.c where n is an integer ranging from {1..99999999999999}
 	2-) A .txt file that is the script that should be printed, name should be: tutorial.<n>.txt, where n is the same as the one
 		from the name of .c file
 	3-) A .gdb file that'll be run as a batch script on gdb. Name should be tutorial.<n>.gdb
 	4-) A python script that should produce gdb files that'll be used by tutorial script. Name should be tutorial.<n>.py
+	5-) A Makefile, named tutorial.<n>.mk that should:
+		5.1-) Compile your tutorial;
+		5.2-) Send binary and txt file to <pE_path>/bin/tutorials;
+	6-) All these files should be inside a directory named: tutorial.<n>
 
+Failur to comply to these standards will likely cause the tutorial to either not compile or not work.
