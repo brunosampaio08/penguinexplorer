@@ -5,25 +5,11 @@
 #include <regex.h>
 #include <unistd.h>
 #include <locale.h>
+#include <string.h>
+#include <ctype.h>
 
 #include "shell.h"
 #include "pE_application.h"
-
-#define GDB_TMP "./tmp/gdb.tmp"
-#define GDB_TMP_2 "./tmp/gdb.tmp2"
-// TODO make this generic
-//#define TUTORIALS_PATH "./bin/tutorials/tutorial.1.txt"
-#define STACK_PATH "./bin/tutorials/stack_file"
-#define INTRO_PATH "./bin/tutorials/intro"
-
-#define LOG_TAG "pE_application"
-#define DEBUG
-
-#define CMD_MAX_SIZE 1024
-// this leaves space for tutorial.<n> size to range n = {1..99999999999999}
-#define PATH_MAX_SIZE CMD_MAX_SIZE-24
-#define TUTORIAL_MAX_NUM 15
-#define BUFFER_MAX_SIZE 1024
 
 void gdb_run(char *str) {}
 
@@ -44,7 +30,7 @@ void start_pE(struct window_desc *tutorial_window)
 	(*tutorial_window).pointer_x = 1;
 
 	print_to_window("Welcome to penguinExplore! Do you wish to read the intro?(y/n) ", tutorial_window);
-	wgetnstr((*tutorial_window).win, buffer, BUFFER_MAX_SIZE);
+	readline(tutorial_window, buffer, BUFFER_MAX_SIZE);
 
 	if(buffer[0] != 'y')
 		return;
@@ -74,28 +60,34 @@ int main(int argc, char **argv)
 					.starty = 0, 
 					.startx = 0,
 					.pointer_y = 1,
-					.pointer_x = 1};
+					.pointer_x = 1,
+					.cur_cmd = 0};
 
 	struct window_desc memExam_window = {.height = 0,
 					.width = 0, 
 					.starty = 0, 
 					.startx = 0,
 					.pointer_y = 1,
-					.pointer_x = 1};
+					.pointer_x = 1,
+					.cur_cmd = 0};
 
 	struct window_desc tutorial_window = {.height = 0,
 					.width = 0, 
 					.starty = 0, 
 					.startx = 0,
 					.pointer_y = 1,
-					.pointer_x = 1};
+					.pointer_x = 1,
+					.cur_cmd = 0};
 
 	struct window_desc gdb_window = {.height = 0,
 					.width = 0, 
 					.starty = 0, 
 					.startx = 0,
 					.pointer_y = 1,
-					.pointer_x = 1};
+					.pointer_x = 1,
+					.cur_cmd = 0};
+
+
 
 	int rows, cols;
 	int return_value;
@@ -108,6 +100,11 @@ int main(int argc, char **argv)
 	char tutorial_num[TUTORIAL_MAX_NUM];
 	char pwd[PATH_MAX_SIZE];
 	char *path;
+
+	prompt_window.history = initialize_cmd_history();
+	memExam_window.history = NULL;
+	tutorial_window.history = NULL;
+	gdb_window.history = initialize_cmd_history();
 
 	//struct stat st = {0};
 
@@ -205,9 +202,13 @@ int main(int argc, char **argv)
 
 	do
 	{
-		mvwprintw(prompt_window.win, prompt_window.pointer_y++, prompt_window.startx+1, "prompt > ");
+		mvwprintw(prompt_window.win, prompt_window.pointer_y, prompt_window.startx+1, "prompt > ");
+		// need to do this because readline wont move our pointers
+		getyx(prompt_window.win, prompt_window.pointer_y, prompt_window.pointer_x);
 		wrefresh(prompt_window.win);
-		wgetnstr(prompt_window.win, unparsed_cmd, CMD_MAX_SIZE);
+		readline(&prompt_window, unparsed_cmd, CMD_MAX_SIZE);
+		// need to do this because readline wont move our pointers
+		wmove(prompt_window.win, ++prompt_window.pointer_y, prompt_window.pointer_x = 1);
 
 		// If command is some custom command or some problematic string,
 		// check and treat it according
@@ -305,6 +306,119 @@ int main(int argc, char **argv)
 	endwin();
 
 	return 0;
+}
+
+char** initialize_cmd_history(){
+	char **string_array;
+
+	string_array = malloc(HIST_SIZE*sizeof(char *));
+	for(int i = 0; i < HIST_SIZE; i++){
+		string_array[i] = malloc(CMD_MAX_SIZE*sizeof(char));
+		strcpy(string_array[i], " ");
+	}
+
+	return string_array;
+}
+
+// TODO: fiz when i'm reading and size is the last row, need to clear (currently overwriting the line)
+void readline(struct window_desc *window, char *buffer, int buf_len){
+	int pos = 0;
+	int len = 0;
+
+	int local_cmd = (*window).cur_cmd;
+
+	pELOG("Started!");
+
+	keypad((*window).win, TRUE);
+
+	for(;;){
+		int c;
+
+		buffer[len] = ' ';
+		mvwaddnstr((*window).win, (*window).pointer_y, (*window).pointer_x, buffer, len+1);
+		wmove((*window).win, (*window).pointer_y, ((*window).pointer_x)+pos);
+		c = wgetch((*window).win);
+
+		pELOG("Key pressed: %d", c);
+
+		if(c == KEY_ENTER || c == '\n' || c == '\r'){
+			break;
+		}
+		else if(isprint(c)){
+			if (pos < buf_len-1) {
+				memmove(buffer+pos+1, buffer+pos, len-pos);
+				buffer[pos++] = c;
+				len += 1;
+			}
+		}
+		else{
+			switch(c)
+			{
+				case KEY_LEFT:
+					if (pos > 0)
+						pos -= 1;
+					break;
+				case KEY_RIGHT:
+					if (pos < len)
+						pos += 1;
+					break;
+				case KEY_BACKSPACE:
+					if (pos > 0){
+						memmove(buffer+pos-1, buffer+pos, len-pos);
+						pos -= 1;
+						len -= 1;
+					}
+					break;
+				case KEY_DC:
+					if (pos < len){
+						memmove(buffer+pos, buffer+pos+1, len-pos-1);
+						len -= 1;
+					}
+					break;
+				case KEY_UP:
+					if((*window).history != NULL){
+						pELOG("History is not NULL!");
+						pELOG("local_cmd: %d", local_cmd);
+						if(strcmp((*window).history[(local_cmd-1) < 0? 24:(local_cmd-1)], " ")){
+							local_cmd--;
+							pELOG("Moving buffer to: %s", (*window).history[local_cmd]);
+							strcpy(buffer, (*window).history[local_cmd]);
+							len = strlen(buffer);
+							pos = strlen(buffer);
+						}
+					}
+					break;
+				case KEY_DOWN:
+					if((*window).history != NULL){
+						pELOG("History is not NULL!");
+						pELOG("local_cmd: %d", local_cmd);
+						// if it's higher, dont go ahead
+						// because this is a circular list
+						if(local_cmd+1 < (*window).cur_cmd){
+							local_cmd++;
+							pELOG("Moving buffer to: %s", (*window).history[local_cmd]);
+							strcpy(buffer, (*window).history[local_cmd]);
+							len = strlen(buffer);
+							pos = strlen(buffer);
+						}
+					}
+					break;
+				default:
+					break;
+			}
+		}
+	}
+	buffer[len] = '\0';
+
+	if((*window).history != NULL){
+		strcpy((*window).history[(*window).cur_cmd], buffer);
+		pELOG("Added to history: %s", (*window).history[(*window).cur_cmd]);
+		(*window).cur_cmd = ((*window).cur_cmd+1)%HIST_SIZE;
+	}
+
+	keypad((*window).win, FALSE);
+
+	pELOG("Ended!");
 }
 
 void print_to_window(char* message, struct window_desc *window){
@@ -581,7 +695,9 @@ int exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_fi
 
 		mvwprintw((*tutorial_window).win, (*tutorial_window).pointer_y, (*tutorial_window).pointer_x, "command > ");
 
-		wgetnstr((*tutorial_window).win, command, CMD_MAX_SIZE);
+		getyx((*tutorial_window).win, (*tutorial_window).pointer_y, (*tutorial_window).pointer_x);
+		readline(tutorial_window, command, CMD_MAX_SIZE);
+		wmove((*tutorial_window).win, (*tutorial_window).pointer_y, (*tutorial_window).pointer_x = 1);
 
 		// an empty command could cause some troubles, so just do nothing
 		if(strlen(command) == 0){

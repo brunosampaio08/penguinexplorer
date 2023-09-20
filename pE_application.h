@@ -7,6 +7,23 @@
 	fprintf(stderr, "[%s] [%s]: %d: " fmt "\n", \
 			LOG_TAG, __func__, __LINE__, ##__VA_ARGS__);
 
+#define GDB_TMP "./tmp/gdb.tmp"
+#define GDB_TMP_2 "./tmp/gdb.tmp2"
+// TODO make this generic
+//#define TUTORIALS_PATH "./bin/tutorials/tutorial.1.txt"
+#define STACK_PATH "./bin/tutorials/stack_file"
+#define INTRO_PATH "./bin/tutorials/intro"
+
+#define LOG_TAG "pE_application"
+#define DEBUG
+
+#define CMD_MAX_SIZE 1024
+#define HIST_SIZE 25
+// this leaves space for tutorial.<n> size to range n = {1..99999999999999}
+#define PATH_MAX_SIZE CMD_MAX_SIZE-24
+#define TUTORIAL_MAX_NUM 15
+#define BUFFER_MAX_SIZE 1024
+
 struct window_desc {
 	int height;
 	int width;
@@ -14,6 +31,8 @@ struct window_desc {
 	int startx;
 	int pointer_y;
 	int pointer_x;
+	char **history;
+	int cur_cmd;
 	WINDOW *win;
 };
 
@@ -25,6 +44,10 @@ enum tutorial_command_t
 	PTUTORIAL,
 	EXIT_CMD,
 };
+
+char** initialize_cmd_history();
+
+void readline(struct window_desc *window, char *buffer, int buflen);
 
 void print_code(FILE* tutorial_file, FILE* code_file);
 
