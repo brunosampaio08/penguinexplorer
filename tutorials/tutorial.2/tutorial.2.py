@@ -184,9 +184,9 @@ class tutorialMainBP(gdb.Breakpoint):
         gdb.execute("list")
         gdb.execute("echo End command list,\\n")
 
-        gdb.execute("echo Start command list my_recursion,\\n")
-        gdb.execute("list my_recursion,")
-        gdb.execute("echo End command list my_recursion,\\n")
+        #gdb.execute("echo Start command list my_recursion,\\n")
+        #gdb.execute("list my_recursion,")
+        #gdb.execute("echo End command list my_recursion,\\n")
 
         gdb.execute("echo Start pcode\\n")
         gdb.execute("set listsize 0")
@@ -198,6 +198,13 @@ class tutorialMainBP(gdb.Breakpoint):
         set_logfile("gdb.tmp", False)
 
         return False
+
+set_logfile("gdb.tmp2", True)
+# just to truncate temp file
+print("Starting tutorial.2 printing!")
+set_logfile("gdb.tmp", True)
+print("Starting tutorial.2 printing!")
+set_logfile("gdb.tmp", False)
 
 curr_file_functions = []
 

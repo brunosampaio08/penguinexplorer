@@ -199,6 +199,13 @@ class tutorialMainBP(gdb.Breakpoint):
 
         return False
 
+set_logfile("gdb.tmp2", True)
+# just to truncate temp file
+print("Starting tutorial.2 printing!")
+set_logfile("gdb.tmp", True)
+print("Starting tutorial.2 printing!")
+set_logfile("gdb.tmp", False)
+
 curr_file_functions = []
 
 getCurrentFileSymbols()
