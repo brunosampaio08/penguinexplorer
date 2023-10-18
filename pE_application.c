@@ -424,7 +424,13 @@ void readline(struct window_desc *window, char *buffer, int buf_len){
 						pELOG("local_cmd: %d", local_cmd);
 						if(strcmp((*window).history[(local_cmd-1) < 0? 24:(local_cmd-1)], " ")){
 							local_cmd--;
+							pELOG("Current buffer: %s", buffer);
 							pELOG("Moving buffer to: %s", (*window).history[local_cmd]);
+							// clear the prompt
+							wmove((*window).win, (*window).pointer_y, (*window).pointer_x);
+							for(int i = 0; i < strlen(buffer); i++){
+								waddch((*window).win, ' ');
+							}
 							strcpy(buffer, (*window).history[local_cmd]);
 							len = strlen(buffer);
 							pos = strlen(buffer);
@@ -435,12 +441,27 @@ void readline(struct window_desc *window, char *buffer, int buf_len){
 					if((*window).history != NULL){
 						pELOG("History is not NULL!");
 						pELOG("local_cmd: %d", local_cmd);
+						pELOG("Current buffer: %s", buffer);
+						pELOG("Moving buffer to: %s", (*window).history[local_cmd]);
 						// if it's higher, dont go ahead
 						// because this is a circular list
 						if(local_cmd+1 < (*window).cur_cmd){
 							local_cmd++;
-							pELOG("Moving buffer to: %s", (*window).history[local_cmd]);
+							// clear the prompt
+							wmove((*window).win, (*window).pointer_y, (*window).pointer_x);
+							for(int i = 0; i < strlen(buffer); i++){
+								waddch((*window).win, ' ');
+							}
 							strcpy(buffer, (*window).history[local_cmd]);
+							len = strlen(buffer);
+							pos = strlen(buffer);
+						}else{
+							// clear the prompt
+							wmove((*window).win, (*window).pointer_y, (*window).pointer_x);
+							for(int i = 0; i < strlen(buffer); i++){
+								waddch((*window).win, ' ');
+							}
+							buffer[0] = '\0';
 							len = strlen(buffer);
 							pos = strlen(buffer);
 						}
