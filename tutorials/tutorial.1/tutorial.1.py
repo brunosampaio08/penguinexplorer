@@ -1,5 +1,16 @@
 import gdb
 
+#LOGGING UTILS
+import logging
+LOG_TAG = "tutorial.1"
+logger = logging.getLogger(__name__)
+#FORMAT = "[%(LOG_TAG)s] [%(funcName)20s()]: s%(lineno)s:  ] %(message)s"
+#logging.basicConfig(format=FORMAT)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter(fmt='%(LOG_TAG)s] [%(funcName)s()]: %(lineno)s: %(message)s', defaults={"LOG_TAG": LOG_TAG}))
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
+
 def getCurrentFileSymbols():
     functions = gdb.execute("info functions -q -n", to_string=True)
     functions = functions.split("\n")
@@ -201,9 +212,9 @@ class tutorialMainBP(gdb.Breakpoint):
 
 set_logfile("gdb.tmp2", True)
 # just to truncate temp file
-print("Starting tutorial.2 printing!")
+print("Starting tutorial.1 printing!")
 set_logfile("gdb.tmp", True)
-print("Starting tutorial.2 printing!")
+print("Starting tutorial.1 printing!")
 set_logfile("gdb.tmp", False)
 
 curr_file_functions = []
