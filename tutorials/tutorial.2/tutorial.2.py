@@ -71,9 +71,9 @@ class spBreakpoint(gdb.Breakpoint):
 
             self.libc_rip = gdb.parse_and_eval("$sp")
             # get sp address and cast it from (void *) to a 64bit integer
-            self.libc_rip_sp = self.libc_rip.cast(gdb.lookup_type("uint64_t").pointer())
+            self.libc_rip_sp = self.libc_rip.cast(gdb.lookup_type("unsigned long long").pointer())
             # dereference sp and get effective libc address and cast it
-            self.libc_rip = self.libc_rip_sp.dereference().cast(gdb.lookup_type("uint64_t").pointer())
+            self.libc_rip = self.libc_rip_sp.dereference().cast(gdb.lookup_type("unsigned long long").pointer())
             gdb.set_convenience_variable("libc_rip_sp", self.libc_rip_sp)
             gdb.set_convenience_variable("libc_rip", self.libc_rip)
 
@@ -94,7 +94,7 @@ class spBreakpoint(gdb.Breakpoint):
 class libcBreakpoint(gdb.Breakpoint):
     def __init__(self):
         print("HIT")
-        gdb.Breakpoint.__init__(self, "__libc_start_call_main", temporary=True)
+        gdb.Breakpoint.__init__(self, "__libc_start_main", temporary=True)
 
     def stop(self):
         self.stackBP = spBreakpoint()
