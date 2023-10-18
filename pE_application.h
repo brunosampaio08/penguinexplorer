@@ -3,10 +3,6 @@
 
 #include <ncurses.h>
 
-#define pELOG(fmt, ...) \
-	fprintf(stderr, "[%s] [%s]: %d: " fmt "\n", \
-			LOG_TAG, __func__, __LINE__, ##__VA_ARGS__);
-
 #define GDB_TMP "./tmp/gdb.tmp"
 #define GDB_TMP_2 "./tmp/gdb.tmp2"
 // TODO make this generic
@@ -23,6 +19,10 @@
 #define PATH_MAX_SIZE CMD_MAX_SIZE-24
 #define TUTORIAL_MAX_NUM 15
 #define BUFFER_MAX_SIZE 1024
+
+#define pELOG(fmt, ...) \
+	fprintf(stderr, "[%s] [%s]: %d: " fmt "\n", \
+			LOG_TAG, __func__, __LINE__, ##__VA_ARGS__);
 
 struct window_desc {
 	int height;
