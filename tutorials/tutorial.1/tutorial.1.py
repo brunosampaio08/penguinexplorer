@@ -3,12 +3,14 @@ import gdb
 #LOGGING UTILS
 import logging
 LOG_TAG = "tutorial.1"
+#start default logger
 logger = logging.getLogger(__name__)
-#FORMAT = "[%(LOG_TAG)s] [%(funcName)20s()]: s%(lineno)s:  ] %(message)s"
-#logging.basicConfig(format=FORMAT)
+#set a handler to format
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter(fmt='%(LOG_TAG)s] [%(funcName)s()]: %(lineno)s: %(message)s', defaults={"LOG_TAG": LOG_TAG}))
+#add handler to logger
 logger.addHandler(handler)
+#set level to debug
 logger.setLevel(logging.DEBUG)
 
 def getCurrentFileSymbols():
@@ -51,6 +53,7 @@ def set_logfile(file, ovewrite):
 # save it, this is __libc_start_call_main return rip
 class spBreakpoint(gdb.Breakpoint):
     def __init__(self):
+        logger.debug("Initializing spBreakpoint!")
         gdb.Breakpoint.__init__(self, "$sp", type=gdb.BP_WATCHPOINT)
 
         # get current sp and cast it to address
@@ -82,9 +85,9 @@ class spBreakpoint(gdb.Breakpoint):
 
             self.libc_rip = gdb.parse_and_eval("$sp")
             # get sp address and cast it from (void *) to a 64bit integer
-            self.libc_rip_sp = self.libc_rip.cast(gdb.lookup_type("uint64_t").pointer())
+            self.libc_rip_sp = self.libc_rip.cast(gdb.lookup_type("unsigned long long").pointer())
             # dereference sp and get effective libc address and cast it
-            self.libc_rip = self.libc_rip_sp.dereference().cast(gdb.lookup_type("uint64_t").pointer())
+            self.libc_rip = self.libc_rip_sp.dereference().cast(gdb.lookup_type("unsigned long long").pointer())
             gdb.set_convenience_variable("libc_rip_sp", self.libc_rip_sp)
             gdb.set_convenience_variable("libc_rip", self.libc_rip)
 
@@ -104,8 +107,8 @@ class spBreakpoint(gdb.Breakpoint):
 # when we hit __libc_start_call_main
 class libcBreakpoint(gdb.Breakpoint):
     def __init__(self):
-        print("HIT")
-        gdb.Breakpoint.__init__(self, "__libc_start_call_main", temporary=True)
+        logger.debug("Initializing libcBreakpoiint!")
+        gdb.Breakpoint.__init__(self, "__libc_start_main", temporary=True)
 
     def stop(self):
         self.stackBP = spBreakpoint()
