@@ -87,8 +87,6 @@ int main(int argc, char **argv)
 					.pointer_x = 1,
 					.cur_cmd = 0};
 
-
-
 	int rows, cols;
 	int return_value;
 
@@ -277,7 +275,7 @@ int main(int argc, char **argv)
 				strcat(tmp_str, ".txt");
 
 				// TODO make tutorial_number dynamic
-				print_tutorial(tmp_str, &tutorial_window, &memExam_window, &gdb_window);
+				print_tutorial(tmp_str, &tutorial_window, &memExam_window, &gdb_window, prompt_window);
 			}
 			else{
 				print_to_window("Run tutorial but couldn't get option!\n", &prompt_window);
@@ -306,6 +304,51 @@ int main(int argc, char **argv)
 	endwin();
 
 	return 0;
+}
+
+struct window_desc save_window(struct window_desc old_window, FILE* win_file, int save_to_file){
+	struct window_desc new_window = {.height = 0,
+					.width = 0,
+					.starty = 0,
+					.startx = 0,
+					.pointer_y = 1,
+					.pointer_x = 1,
+					.cur_cmd = 0};
+
+	pELOG("Started!");
+
+	new_window.height = old_window.height;
+	new_window.width = old_window.width;
+	new_window.starty = old_window.starty;
+	new_window.starty = old_window.startx;
+	new_window.startx = old_window.pointer_y;
+	new_window.startx = old_window.pointer_x;
+	new_window.history = old_window.history;
+	new_window.cur_cmd = old_window.cur_cmd;
+
+	//new_window.win = newwin(new_window.height, new_window.width, new_window.starty, new_window.startx);
+
+	// saving to file or getting from file?
+	if(save_to_file == 1){
+		if(putwin(old_window.win, win_file) != OK){
+			pELOG("Failure saving window to file!");
+			return old_window;
+		}
+		/*if(overwrite(old_window.win, new_window.win) != OK){
+			pELOG("Failure overwriting old window!");
+			return old_window;
+		}*/
+	}else{
+		new_window.win = getwin(win_file);
+		if(!(new_window.win)){
+			pELOG("Failure recovering window from file!");
+			return old_window;
+		}
+	}
+
+	pELOG("Ended!");
+
+	return new_window;
 }
 
 char** initialize_cmd_history(){
@@ -820,6 +863,7 @@ void print_code(FILE* tutorial_file, FILE* code_file)
 					.pointer_y = 1,
 					.pointer_x = 1};
 
+	// maybe this is a workaround and should be avoided?
 	screen_tmp = tmpfile();
 	tmp_fileno = fileno(screen_tmp);
 	sprintf(proclnk, "/proc/self/fd/%d", tmp_fileno);
@@ -919,7 +963,8 @@ int parse_buffer(char* buffer)
 }
 
 void print_tutorial(char* tutorial_number, \
-		struct window_desc *tutorial_window, struct window_desc *stack_window, struct window_desc *command_window)
+		struct window_desc *tutorial_window, struct window_desc *stack_window, \
+		struct window_desc *command_window, struct window_desc shell_window)
 {
 	FILE *tutorials_txt;
 	FILE *gdb_file;
@@ -928,7 +973,40 @@ void print_tutorial(char* tutorial_number, \
 
 	enum tutorial_command_t command;
 
+	/* vars to save window */
+	FILE* shell_temp;
+	struct window_desc saved_window;
+
 	pELOG("Started!");
+
+	/* Let's use the shell window space for something */
+	// maybe this is a workaround and should be avoided?
+
+	/*shell_temp = tmpfile();
+	if(!shell_temp){
+		pELOG("Failure opening temporary file.");
+		perror("Errno: ");
+	}
+	putwin((*shell_window).win, shell_temp);*/
+	shell_temp = fopen("./tmp/window.tmp", "w");
+	putwin(shell_window.win, shell_temp);
+	//saved_window = save_window(shell_window, shell_temp, 1);
+	fclose(shell_temp);
+
+	wclear(shell_window.win);
+	box(shell_window.win, 0, 0);
+	wrefresh(shell_window.win);
+
+	shell_window.pointer_y = 1;
+	shell_window.pointer_x = 1;
+
+	print_to_window("Useful tips while doing a tutorial:\n", &shell_window);
+	print_to_window("You can always press 'q' and then 'c' to go to command mode!\n", &shell_window);
+	print_to_window("In command mode, type 'help' for useful command!\n", &shell_window);
+	print_to_window("You can press 'TBD' to focus on stack window. While there, N and n will\
+			switch through pages!\n", &shell_window);
+
+	/* End of messing up with shell window */
 
 	tutorials_txt = fopen(tutorial_number, "r");
 	gdb_file = fopen(GDB_TMP_2, "r");
@@ -1008,6 +1086,13 @@ void print_tutorial(char* tutorial_number, \
 	}
 
 EXIT:
+	shell_temp = fopen("./tmp/window.tmp", "r");
+	shell_window.win = getwin(shell_temp);
+	//shell_window = save_window(saved_window, shell_temp, 0);
+	fclose(shell_temp);
+
+	wrefresh(shell_window.win);
+
 	fclose(tutorials_txt);
 	fclose(gdb_file);
 

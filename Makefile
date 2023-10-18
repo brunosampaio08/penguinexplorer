@@ -28,3 +28,4 @@ tutorial.x:
 clean:
 	rm -r $(binary_dir)
 	rm -r $(intermediates_dir)
+	rm -r tmp
