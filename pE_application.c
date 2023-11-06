@@ -13,6 +13,8 @@
 
 void gdb_run(char *str) {}
 
+int supports_color = 0;
+
 void start_pE(struct window_desc *tutorial_window)
 {
 	// show some info about pE
@@ -122,6 +124,15 @@ int main(int argc, char **argv)
 	scrollok(prompt_window.win, TRUE);
 	// receive special keys like arrow and fX
 	keypad(stdscr, TRUE);
+	// initialize colors if ok
+	/*if(has_colors() == TRUE){
+		supports_color = 1;
+		start_color();
+		init_pair(1, COLOR_WHITE, COLOR_BLACK);
+		attron(COLOR_PAIR(1));
+	}else{
+		pELOG("Terminal does not support color!");
+	}*/
 
 	/* START PROMPT WINDOW */
 	getmaxyx(stdscr, rows, cols);
@@ -683,6 +694,8 @@ void print_stack(struct window_desc* stack_window, FILE* stack_file)
 
 	is_last = 0;
 
+	//init_pair(1, COLOR_GREEN, COLOR_WHITE);
+	//attron(COLOR_PAIR(1));
 	while(fgets(buffer, BUFFER_MAX_SIZE, stack_main_file))
 	{
 		if(is_last)
@@ -1075,9 +1088,9 @@ void print_tutorial(char* tutorial_number, \
 
 				print_to_window(buffer, tutorial_window);
 
-				mvwprintw((*tutorial_window).win, (*tutorial_window).height-1, 0, "Press \"n\" continue.");
+				mvwprintw((*tutorial_window).win, (*tutorial_window).height-1, 0, "Press \"n\" to continue or N to go back.");
 				noecho();
-				while((tmp_ch = wgetch((*tutorial_window).win)) != 'n')
+				while(((tmp_ch = wgetch((*tutorial_window).win)) != 'n'))
 				{
 					pELOG("tmp_ch = %c", tmp_ch);
 					// if we are waiting after tutorial was printed
@@ -1093,7 +1106,7 @@ void print_tutorial(char* tutorial_number, \
 							{
 								goto EXIT;
 							}
-							mvwprintw((*tutorial_window).win, (*tutorial_window).height-1, 0, "Press \"n\" continue.");
+							mvwprintw((*tutorial_window).win, (*tutorial_window).height-1, 0, "Press \"n\" to continue or N to go back.");
 							noecho();
 						}
 					}

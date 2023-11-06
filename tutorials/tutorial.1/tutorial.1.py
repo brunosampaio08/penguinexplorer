@@ -88,6 +88,7 @@ class spBreakpoint(gdb.Breakpoint):
             self.libc_rip_sp = self.libc_rip.cast(gdb.lookup_type("unsigned long long").pointer())
             # dereference sp and get effective libc address and cast it
             self.libc_rip = self.libc_rip_sp.dereference().cast(gdb.lookup_type("unsigned long long").pointer())
+            logger.debug("libc_rip: "+self.libc_rip.format_string())
             gdb.set_convenience_variable("libc_rip_sp", self.libc_rip_sp)
             gdb.set_convenience_variable("libc_rip", self.libc_rip)
 
@@ -181,6 +182,8 @@ class tutorialMainBP(gdb.Breakpoint):
         gdb.execute("echo End command x/8xg $sp\\n")
         gdb.execute("set listsize 1")
         gdb.execute("echo Start command info lines *($sp)\\n")
+        logger.debug("libc_rip: "+self.libc_rip.format_string())
+        gdb.execute("p $libc_rip")
         gdb.execute("list *$libc_rip-1,")
         gdb.execute("echo End command info lines *($sp)\\n")
         #print(self.libc_rip.format_string(symbols=True, address=True))
