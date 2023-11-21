@@ -1009,7 +1009,17 @@ void print_tutorial(char* tutorial_number, \
 
 	/* vars to save window */
 	FILE* shell_temp;
-	struct window_desc saved_window;
+	//struct window_desc saved_window;
+
+	struct window_desc help_window = {.height = 0,
+					.width = 0,
+					.starty = 0,
+					.startx = 0,
+					.pointer_y = 1,
+					.pointer_x = 1,
+					.cur_cmd = 0};
+
+	int rows, cols;
 
 	pELOG("Started!");
 
@@ -1027,6 +1037,20 @@ void print_tutorial(char* tutorial_number, \
 	//saved_window = save_window(shell_window, shell_temp, 1);
 	fclose(shell_temp);
 
+	/* START HELP WINDOW */
+	getmaxyx(stdscr, rows, cols);
+
+	// TODO make this "-6" more generic using DEFINEs
+	help_window.height = rows/3;
+	help_window.width = cols/2;
+
+	help_window.win = newwin(help_window.height, help_window.width, help_window.starty, help_window.startx);
+
+	box(help_window.win, 0, 0);
+	wrefresh(help_window.win);
+	/* FINISHED HELP WINDOW */
+
+	/*
 	wclear(shell_window.win);
 	box(shell_window.win, 0, 0);
 	wrefresh(shell_window.win);
@@ -1038,7 +1062,13 @@ void print_tutorial(char* tutorial_number, \
 	print_to_window("You can always press 'q' and then 'c' to go to command mode!\n", &shell_window);
 	print_to_window("In command mode, type 'help' for useful command!\n", &shell_window);
 	print_to_window("You can press 'TBD' to focus on stack window. While there, N and n will\
-			switch through pages!\n", &shell_window);
+			switch through pages!\n", &shell_window); */
+
+	print_to_window("Useful tips while doing a tutorial:\n", &help_window);
+	print_to_window("You can always press 'q' and then 'c' to go to command mode!\n", &help_window);
+	print_to_window("In command mode, type 'help' for useful command!\n", &help_window);
+	print_to_window("You can press 'TBD' to focus on stack window. While there, N and n will\
+			switch through pages!\n", &help_window);
 
 	/* End of messing up with shell window */
 
