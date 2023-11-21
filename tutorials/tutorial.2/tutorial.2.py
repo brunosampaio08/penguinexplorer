@@ -32,7 +32,7 @@ def set_logfile(file, ovewrite):
         gdb.execute("set logging overwrite off")
     else:
         gdb.execute("set logging overwrite on")
-    gdb.execute("set logging file /home/brunosmp/Documents/UNIFESP/TCC2/development/tmp/"+file)
+    gdb.execute("set logging file ./tmp/"+file)
     gdb.execute("set logging enabled on")
 
 # just set the stack pointer BP

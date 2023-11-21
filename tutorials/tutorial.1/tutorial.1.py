@@ -45,7 +45,7 @@ def set_logfile(file, ovewrite):
         gdb.execute("set logging overwrite off")
     else:
         gdb.execute("set logging overwrite on")
-    gdb.execute("set logging file /home/brunosmp/Documents/UNIFESP/TCC2/development/tmp/"+file)
+    gdb.execute("set logging file ./tmp/"+file)
     gdb.execute("set logging enabled on")
 
 # just set the stack pointer BP
@@ -182,7 +182,6 @@ class tutorialMainBP(gdb.Breakpoint):
         gdb.execute("echo End command x/8xg $sp\\n")
         gdb.execute("set listsize 1")
         gdb.execute("echo Start command info lines *($sp)\\n")
-        logger.debug("libc_rip: "+self.libc_rip.format_string())
         gdb.execute("p $libc_rip")
         gdb.execute("list *$libc_rip-1,")
         gdb.execute("echo End command info lines *($sp)\\n")
