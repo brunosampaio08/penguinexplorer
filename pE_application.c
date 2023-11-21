@@ -58,32 +58,32 @@ void start_pE(struct window_desc *tutorial_window)
 int main(int argc, char **argv)
 {
 	struct window_desc prompt_window = {.height = 0, 
-					.width = 0, 
-					.starty = 0, 
+					.width = 0,
+					.starty = 0,
 					.startx = 0,
 					.pointer_y = 1,
 					.pointer_x = 1,
 					.cur_cmd = 0};
 
 	struct window_desc memExam_window = {.height = 0,
-					.width = 0, 
-					.starty = 0, 
+					.width = 0,
+					.starty = 0,
 					.startx = 0,
 					.pointer_y = 1,
 					.pointer_x = 1,
 					.cur_cmd = 0};
 
 	struct window_desc tutorial_window = {.height = 0,
-					.width = 0, 
-					.starty = 0, 
+					.width = 0,
+					.starty = 0,
 					.startx = 0,
 					.pointer_y = 1,
 					.pointer_x = 1,
 					.cur_cmd = 0};
 
 	struct window_desc gdb_window = {.height = 0,
-					.width = 0, 
-					.starty = 0, 
+					.width = 0,
+					.starty = 0,
 					.startx = 0,
 					.pointer_y = 1,
 					.pointer_x = 1,
