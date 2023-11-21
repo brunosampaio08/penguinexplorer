@@ -101,6 +101,8 @@ int main(int argc, char **argv)
 	char pwd[PATH_MAX_SIZE];
 	char *path;
 
+	char tmp_command[CMD_MAX_SIZE];
+
 	prompt_window.history = initialize_cmd_history();
 	memExam_window.history = NULL;
 	tutorial_window.history = NULL;
@@ -239,6 +241,7 @@ int main(int argc, char **argv)
 			}
 			continue;
 		}
+		strcpy(tmp_command, unparsed_cmd);
 		if(!strcmp(strtok(unparsed_cmd," "), "tutorial")){ // if it's a tutorial command
 			if(!strcmp(strtok(NULL," "), "-n")){
 
@@ -295,7 +298,10 @@ int main(int argc, char **argv)
 			continue;
 		}
 		// if not, just run the command
-		return_value = run_shell(unparsed_cmd);
+		pELOG("unparsed_cmd: %s", unparsed_cmd);
+		pELOG("unparsed_cmd: %s", tmp_command);
+		return_value = run_shell(tmp_command);
+		//return_value = run_shell(unparsed_cmd);
 
 		if(return_value == -1){
 			mvwprintw(prompt_window.win, prompt_window.pointer_y++, prompt_window.startx+1, "Command failed. Are you sure it exists?");
