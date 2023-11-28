@@ -1,4 +1,10 @@
 import gdb
+import os
+import re
+
+cwd = os.getcwd()
+proj_path = re.sub('/tutorials/.*', '', cwd)
+os.chdir(proj_path)
 
 def getCurrentFileSymbols():
     functions = gdb.execute("info functions -q -n", to_string=True)
@@ -199,12 +205,21 @@ class tutorialMainBP(gdb.Breakpoint):
 
         return False
 
-set_logfile("gdb.tmp2", True)
 # just to truncate temp file
-print("Starting tutorial.2 printing!")
-set_logfile("gdb.tmp", True)
-print("Starting tutorial.2 printing!")
-set_logfile("gdb.tmp", False)
+# TODO: maybe should create file inside set_logfile?
+gdb_1 = open("./tmp/gdb.tmp", 'w')
+gdb_1.truncate()
+gdb_1.close
+gdb_2 = open("./tmp/gdb.tmp2", 'w')
+gdb_2.truncate()
+gdb_2.close
+
+#set_logfile("gdb.tmp2", True)
+# just to truncate temp file
+#print("Starting tutorial.2 printing!")
+#set_logfile("gdb.tmp", True)
+#print("Starting tutorial.2 printing!")
+#set_logfile("gdb.tmp", False)
 
 curr_file_functions = []
 
