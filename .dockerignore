@@ -1,0 +1,10 @@
+# ignore everything
+*
+# remove what I want to copy from ignore
+!intro
+!Makefile
+!pE_application.c
+!pE_application.h
+!shell.c
+!shell.h
+!tutorials
