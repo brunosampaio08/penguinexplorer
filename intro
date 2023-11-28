@@ -1,7 +1,12 @@
 Hi! So this is your first time using penguinExplorer! Let's have a tour.
-On the upper left corner, we have the prompt. This is where you can type ~almost~ any GNU/Linux shell command and it will run.
-On the lower left corner, we have the command window. This will be used in tutorials, and you will run debugging commands on it.
-Where you are reading this, it's the tutorial window. Some important info about usage and the tutorials will be printed here.
-On the right side, we have the stack window. There, addresses and values of the running program's stack and frame will be shown.
+Normally, your window would look like this. On the left, we have the prompt where you'll write ~almost~ any GNU/Linux shell command and it will run.
+On the right, we have the Memory Examination window, where information about the program being run is printed. For now, this will only be used for tutorials, but stay tuned for nice updates ;)~
+Now we'll switch to TUTORIAL MODE, windows will change and then I'll keep explaining!
+SWITCH
+This is TUTORIAL MODE. You can get into this mode by typing "tutorial -n <tutorial_number>", where tutorial number is the number of the tutorial you want to run.
+On the upper left we have the Help Window. Some useful info will be printed there during tutorials.
+On the lower left corner, we have the Command Window. This will be used primarily for GDB commands, but you can also used it to get help or exit from tutorials.
+Where you are reading this, it's the Tutorial Window. Some important info about usage and the tutorials will be printed here.
+On the right side, we still have the Memory Examination window, it's the same as before. Different tutorials might choose to use it in different ways, however.
 If this is your first time, I recommend you start by running the first tutorial. When you get control of the prompt, type "tutorial -n 1" and it'll start.
 Now, I'll move you to the prompt and you're free. Bye, see you soon!

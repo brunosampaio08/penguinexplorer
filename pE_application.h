@@ -33,6 +33,7 @@ struct window_desc {
 	int pointer_x;
 	char **history;
 	int cur_cmd;
+	char *name;
 	WINDOW *win;
 };
 
@@ -64,8 +65,7 @@ void print_stack(struct window_desc* stack_window, FILE* stack_file);
 int exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_file, char* command);
 
 void print_tutorial(char* tutorial_number, \
-		struct window_desc *tutorial_window, struct window_desc *stack_window, \
-		struct window_desc *command_window, struct window_desc shell_window);
+		struct window_desc *stack_window);
 
 void gdb_run(char *str);
 

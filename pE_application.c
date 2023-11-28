@@ -23,6 +23,90 @@ void start_pE(struct window_desc *tutorial_window)
 
 	char tmp_ch;
 
+	struct window_desc help_window = {.height = 0,
+					.width = 0,
+					.starty = 0,
+					.startx = 0,
+					.pointer_y = 1,
+					.pointer_x = 1,
+					.cur_cmd = 0};
+
+	struct window_desc center_tutorial_window = {.height = 0,
+					.width = 0,
+					.starty = 0,
+					.startx = 0,
+					.pointer_y = 1,
+					.pointer_x = 1,
+					.cur_cmd = 0};
+
+	struct window_desc gdb_window = {.height = 0,
+					.width = 0,
+					.starty = 0,
+					.startx = 0,
+					.pointer_y = 1,
+					.pointer_x = 1,
+					.cur_cmd = 0};
+
+
+	struct window_desc cur_window;
+
+	cur_window = (*tutorial_window);
+
+	int rows, cols;
+
+	pELOG("Started!");
+
+	getmaxyx(stdscr, rows, cols);
+
+	/* START TutorialWindow WINDOW */
+	center_tutorial_window.height = rows/3;
+	center_tutorial_window.width = cols/2;
+
+	center_tutorial_window.startx = 0;
+	center_tutorial_window.starty = rows/3;
+
+	center_tutorial_window.win = newwin(center_tutorial_window.height, center_tutorial_window.width, center_tutorial_window.starty, center_tutorial_window.startx);
+
+	center_tutorial_window.pointer_y = 1;
+	center_tutorial_window.pointer_x = 1;
+
+	center_tutorial_window.name = malloc((sizeof(char)*strlen("tutorial_window"))+1);
+	strcpy(center_tutorial_window.name, "tutorial_window");
+
+	/* FINISHED TutorialWindow WINDOW */
+
+	/* START GDB WINDOW */
+	gdb_window.height = (rows/3)+1;
+	gdb_window.width = cols/2;
+
+	gdb_window.startx = 0;
+	gdb_window.starty = (2*rows)/3;
+
+	gdb_window.win = newwin(gdb_window.height, gdb_window.width, gdb_window.starty, gdb_window.startx);
+
+	gdb_window.pointer_y = 1;
+	gdb_window.pointer_x = 1;
+
+	gdb_window.name = malloc((sizeof(char)*strlen("gdb_window"))+1);
+	strcpy(gdb_window.name, "gdb_window");
+
+	/* FINISHED GDB WINDOW */
+
+	/* START HELP WINDOW */
+
+	// TODO make this "-6" more generic using DEFINEs
+	help_window.height = rows/3;
+	help_window.width = cols/2;
+
+	help_window.win = newwin(help_window.height, help_window.width, help_window.starty, help_window.startx);
+
+	help_window.pointer_y = 1;
+	help_window.pointer_x = 1;
+
+	help_window.name = malloc((sizeof(char)*strlen("help_window"))+1);
+	strcpy(help_window.name, "help_window");
+	/* FINISHED HELP WINDOW */
+
 	intro_file = fopen(INTRO_PATH, "r");
 
 	wclear((*tutorial_window).win);
@@ -39,18 +123,48 @@ void start_pE(struct window_desc *tutorial_window)
 
 	while(fgets(buffer, BUFFER_MAX_SIZE, intro_file))
 	{
-		wclear((*tutorial_window).win);
-		wrefresh((*tutorial_window).win);
-		box((*tutorial_window).win, 0, 0);
-		(*tutorial_window).pointer_y = 1;
-		(*tutorial_window).pointer_x = 1;
+		if(!strcmp(strtok(buffer,"\n"), "SWITCH")){
+			wclear((*tutorial_window).win);
+			wrefresh((*tutorial_window).win);
 
-		print_to_window(buffer, tutorial_window);
+			box(center_tutorial_window.win, 0, 0);
+			mvwprintw(center_tutorial_window.win, 0, \
+					center_tutorial_window.width-strlen(center_tutorial_window.name)-1,\
+					center_tutorial_window.name);
+			wrefresh(center_tutorial_window.win);
 
-		mvwprintw((*tutorial_window).win, (*tutorial_window).height-1, 0, "Press \"n\" continue.");
-		noecho();
-		while((tmp_ch = wgetch((*tutorial_window).win)) != 'n');
-		echo();
+			print_to_window("This is the Command Window!", &gdb_window);
+			box(gdb_window.win, 0, 0);
+			mvwprintw(gdb_window.win, 0, \
+					gdb_window.width-strlen(gdb_window.name)-1,\
+					gdb_window.name);
+			wrefresh(gdb_window.win);
+
+			print_to_window("This is the Help Window!", &help_window);
+			box(help_window.win, 0, 0);
+			mvwprintw(help_window.win, 0, \
+					help_window.width-strlen(help_window.name)-1,\
+					help_window.name);
+			wrefresh(help_window.win);
+
+			cur_window = center_tutorial_window;
+		} else {
+			wclear(cur_window.win);
+			box(cur_window.win, 0, 0);
+			mvwprintw(cur_window.win, 0, \
+					cur_window.width-strlen(cur_window.name)-1,\
+					cur_window.name);
+			wrefresh(cur_window.win);
+			cur_window.pointer_y = 1;
+			cur_window.pointer_x = 1;
+
+			print_to_window(buffer, &cur_window);
+
+			mvwprintw(cur_window.win, cur_window.height-1, 0, "Press \"n\" continue.");
+			noecho();
+			while((tmp_ch = wgetch(cur_window.win)) != 'n');
+			echo();
+		}
 	}
 
 }
@@ -73,27 +187,16 @@ int main(int argc, char **argv)
 					.pointer_x = 1,
 					.cur_cmd = 0};
 
-	struct window_desc tutorial_window = {.height = 0,
-					.width = 0,
-					.starty = 0,
-					.startx = 0,
-					.pointer_y = 1,
-					.pointer_x = 1,
-					.cur_cmd = 0};
-
-	struct window_desc gdb_window = {.height = 0,
-					.width = 0,
-					.starty = 0,
-					.startx = 0,
-					.pointer_y = 1,
-					.pointer_x = 1,
-					.cur_cmd = 0};
 
 	int rows, cols;
 	int return_value;
 
 	FILE *output_file;
 	FILE *gdb_file;
+
+	/* vars to save window */
+	FILE* shell_temp;
+	//struct window_desc saved_window;
 
 	char unparsed_cmd[CMD_MAX_SIZE];
 	char tmp_str[CMD_MAX_SIZE];
@@ -105,8 +208,8 @@ int main(int argc, char **argv)
 
 	prompt_window.history = initialize_cmd_history();
 	memExam_window.history = NULL;
-	tutorial_window.history = NULL;
-	gdb_window.history = initialize_cmd_history();
+	//tutorial_window.history = NULL;
+	//gdb_window.history = initialize_cmd_history();
 
 	//struct stat st = {0};
 
@@ -140,31 +243,15 @@ int main(int argc, char **argv)
 	getmaxyx(stdscr, rows, cols);
 
 	// TODO make this "-6" more generic using DEFINEs
-	prompt_window.height = rows/3;
+	prompt_window.height = rows;
 	prompt_window.width = cols/2;
 
 	prompt_window.win = newwin(prompt_window.height, prompt_window.width, prompt_window.starty, prompt_window.startx);
 
-	box(prompt_window.win, 0, 0);
-	wrefresh(prompt_window.win);
+	prompt_window.name = malloc(sizeof(char)*(strlen("prompt_window")+1));
+	strcpy(prompt_window.name, "prompt_window");
+
 	/* FINISHED PROMPT WINDOW */
-
-	/* START TutorialWindow WINDOW */
-	tutorial_window.height = rows/3;
-	tutorial_window.width = cols/2;
-
-	tutorial_window.startx = 0;
-	tutorial_window.starty = rows/3;
-
-	tutorial_window.win = newwin(tutorial_window.height, tutorial_window.width, tutorial_window.starty, tutorial_window.startx);
-
-	box(tutorial_window.win, 0, 0);
-	wrefresh(tutorial_window.win);
-
-	tutorial_window.pointer_y = 1;
-	tutorial_window.pointer_x = 1;
-
-	/* FINISHED TutorialWindow WINDOW */
 
 	/* START MemoryExamination WINDOW */
 	memExam_window.height = rows;
@@ -174,7 +261,11 @@ int main(int argc, char **argv)
 
 	memExam_window.win = newwin(memExam_window.height, memExam_window.width, memExam_window.starty, memExam_window.startx);
 
+	memExam_window.name = malloc(sizeof(char)*(strlen("mem_exam_window")+1));
+	strcpy(memExam_window.name, "mem_exam_window");
+
 	box(memExam_window.win, 0, 0);
+	mvwprintw(memExam_window.win, 0, memExam_window.width-strlen(memExam_window.name)-1, memExam_window.name);
 	wrefresh(memExam_window.win);
 
 	memExam_window.pointer_y = 1;
@@ -182,24 +273,14 @@ int main(int argc, char **argv)
 
 	/* FINISHED MemoryExamination WINDOW */
 
-	/* START GDB WINDOW */
-	gdb_window.height = (rows/3)+1;
-	gdb_window.width = cols/2;
+	start_pE(&prompt_window);
 
-	gdb_window.startx = 0;
-	gdb_window.starty = (2*rows)/3;
-
-	gdb_window.win = newwin(gdb_window.height, gdb_window.width, gdb_window.starty, gdb_window.startx);
-
-	box(gdb_window.win, 0, 0);
-	wrefresh(gdb_window.win);
-
-	gdb_window.pointer_y = 1;
-	gdb_window.pointer_x = 1;
-
-	/* FINISHED GDB WINDOW */
-
-	start_pE(&tutorial_window);
+	prompt_window.pointer_y = 1,
+	prompt_window.pointer_x = 1,
+	wclear(prompt_window.win);
+	box(prompt_window.win, 0, 0);
+	mvwprintw(prompt_window.win, 0, prompt_window.width-strlen(prompt_window.name)-1, prompt_window.name);
+	wrefresh(prompt_window.win);
 
 	// print some stuff on memExam just for fun
 	if (!(gdb_file = fopen(GDB_TMP, "r"))){
@@ -289,7 +370,29 @@ int main(int argc, char **argv)
 				strcat(tmp_str, ".txt");
 
 				// TODO make tutorial_number dynamic
-				print_tutorial(tmp_str, &tutorial_window, &memExam_window, &gdb_window, prompt_window);
+				/* Let's use the shell window space for something */
+				// maybe this is a workaround and should be avoided?
+
+				/*shell_temp = tmpfile();
+				if(!shell_temp){
+					pELOG("Failure opening temporary file.");
+					perror("Errno: ");
+				}
+				putwin((*shell_window).win, shell_temp);*/
+				shell_temp = fopen("./tmp/window.tmp", "w");
+				putwin(prompt_window.win, shell_temp);
+				//saved_window = save_window(shell_window, shell_temp, 1);
+				fclose(shell_temp);
+
+				print_tutorial(tmp_str, &memExam_window);
+
+				shell_temp = fopen("./tmp/window.tmp", "r");
+				prompt_window.win = getwin(shell_temp);
+				//shell_window = save_window(saved_window, shell_temp, 0);
+				fclose(shell_temp);
+
+				wrefresh(prompt_window.win);
+
 			}
 			else{
 				print_to_window("Run tutorial but couldn't get option!\n", &prompt_window);
@@ -522,6 +625,10 @@ void print_to_window(char* message, struct window_desc *window){
 			box((*window).win, 0, 0);
 			(*window).pointer_y = 1;
 			(*window).pointer_x = 1;
+			if((*window).name){
+				mvwprintw((*window).win, 0, (*window).width-(strlen((*window).name)), (*window).name);
+				wrefresh((*window).win);
+			}
 			echo();
 		}
 		if(ch == '\n'){
@@ -655,6 +762,7 @@ void print_stack(struct window_desc* stack_window, FILE* stack_file)
 
 	wclear((*stack_window).win);
 	box((*stack_window).win, 0, 0);
+	mvwprintw((*stack_window).win, 0, (*stack_window).width-strlen((*stack_window).name)-1, (*stack_window).name);
 	wrefresh((*stack_window).win);
 
 	(*stack_window).pointer_y = 1;
@@ -1003,8 +1111,7 @@ int parse_buffer(char* buffer)
 }
 
 void print_tutorial(char* tutorial_number, \
-		struct window_desc *tutorial_window, struct window_desc *stack_window, \
-		struct window_desc *command_window, struct window_desc shell_window)
+		struct window_desc *stack_window)
 {
 	FILE *tutorials_txt;
 	FILE *gdb_file;
@@ -1012,10 +1119,6 @@ void print_tutorial(char* tutorial_number, \
 	char tmp_ch;
 
 	enum tutorial_command_t command;
-
-	/* vars to save window */
-	FILE* shell_temp;
-	//struct window_desc saved_window;
 
 	struct window_desc help_window = {.height = 0,
 					.width = 0,
@@ -1025,26 +1128,74 @@ void print_tutorial(char* tutorial_number, \
 					.pointer_x = 1,
 					.cur_cmd = 0};
 
+	struct window_desc tutorial_window = {.height = 0,
+					.width = 0,
+					.starty = 0,
+					.startx = 0,
+					.pointer_y = 1,
+					.pointer_x = 1,
+					.cur_cmd = 0};
+
+	struct window_desc gdb_window = {.height = 0,
+					.width = 0,
+					.starty = 0,
+					.startx = 0,
+					.pointer_y = 1,
+					.pointer_x = 1,
+					.cur_cmd = 0};
+
+
 	int rows, cols;
 
 	pELOG("Started!");
 
-	/* Let's use the shell window space for something */
-	// maybe this is a workaround and should be avoided?
+	getmaxyx(stdscr, rows, cols);
 
-	/*shell_temp = tmpfile();
-	if(!shell_temp){
-		pELOG("Failure opening temporary file.");
-		perror("Errno: ");
-	}
-	putwin((*shell_window).win, shell_temp);*/
-	shell_temp = fopen("./tmp/window.tmp", "w");
-	putwin(shell_window.win, shell_temp);
-	//saved_window = save_window(shell_window, shell_temp, 1);
-	fclose(shell_temp);
+	/* START TutorialWindow WINDOW */
+	tutorial_window.height = rows/3;
+	tutorial_window.width = cols/2;
+
+	tutorial_window.startx = 0;
+	tutorial_window.starty = rows/3;
+
+	tutorial_window.win = newwin(tutorial_window.height, tutorial_window.width, tutorial_window.starty, tutorial_window.startx);
+
+	tutorial_window.name = malloc(sizeof(char)*(strlen("tutorial_window")+1));
+	strcpy(tutorial_window.name, "tutorial_window");
+
+	box(tutorial_window.win, 0, 0);
+	mvwprintw(tutorial_window.win, 0, tutorial_window.width-strlen(tutorial_window.name)-1, tutorial_window.name);
+
+	wrefresh(tutorial_window.win);
+
+	tutorial_window.pointer_y = 1;
+	tutorial_window.pointer_x = 1;
+
+	/* FINISHED TutorialWindow WINDOW */
+
+	/* START GDB WINDOW */
+	gdb_window.height = (rows/3)+1;
+	gdb_window.width = cols/2;
+
+	gdb_window.startx = 0;
+	gdb_window.starty = (2*rows)/3;
+
+	gdb_window.win = newwin(gdb_window.height, gdb_window.width, gdb_window.starty, gdb_window.startx);
+
+	gdb_window.name = malloc(sizeof(char)*(strlen("gdb_window")+1));
+	strcpy(gdb_window.name, "gdb_window");
+
+	box(gdb_window.win, 0, 0);
+	mvwprintw(gdb_window.win, 0, gdb_window.width-strlen(gdb_window.name)-1, gdb_window.name);
+
+	wrefresh(gdb_window.win);
+
+	gdb_window.pointer_y = 1;
+	gdb_window.pointer_x = 1;
+
+	/* FINISHED GDB WINDOW */
 
 	/* START HELP WINDOW */
-	getmaxyx(stdscr, rows, cols);
 
 	// TODO make this "-6" more generic using DEFINEs
 	help_window.height = rows/3;
@@ -1052,23 +1203,14 @@ void print_tutorial(char* tutorial_number, \
 
 	help_window.win = newwin(help_window.height, help_window.width, help_window.starty, help_window.startx);
 
+	help_window.name = malloc(sizeof(char)*(strlen("help_window")+1));
+	strcpy(help_window.name, "help_window");
+
 	box(help_window.win, 0, 0);
+	mvwprintw(help_window.win, 0, help_window.width-strlen(help_window.name)-1, help_window.name);
+
 	wrefresh(help_window.win);
 	/* FINISHED HELP WINDOW */
-
-	/*
-	wclear(shell_window.win);
-	box(shell_window.win, 0, 0);
-	wrefresh(shell_window.win);
-
-	shell_window.pointer_y = 1;
-	shell_window.pointer_x = 1;
-
-	print_to_window("Useful tips while doing a tutorial:\n", &shell_window);
-	print_to_window("You can always press 'q' and then 'c' to go to command mode!\n", &shell_window);
-	print_to_window("In command mode, type 'help' for useful command!\n", &shell_window);
-	print_to_window("You can press 'TBD' to focus on stack window. While there, N and n will\
-			switch through pages!\n", &shell_window); */
 
 	print_to_window("Useful tips while doing a tutorial:\n", &help_window);
 	print_to_window("You can always press 'q' and then 'c' to go to command mode!\n", &help_window);
@@ -1076,13 +1218,12 @@ void print_tutorial(char* tutorial_number, \
 	print_to_window("You can press 'TBD' to focus on stack window. While there, N and n will\
 			switch through pages!\n", &help_window);
 
-	/* End of messing up with shell window */
-
 	tutorials_txt = fopen(tutorial_number, "r");
 	gdb_file = fopen(GDB_TMP_2, "r");
 
 	wclear((*stack_window).win);
 	box((*stack_window).win, 0, 0);
+	mvwprintw((*stack_window).win, 0, (*stack_window).width-strlen((*stack_window).name)-1, (*stack_window).name);
 	wrefresh((*stack_window).win);
 
 	(*stack_window).pointer_y = 1;
@@ -1107,7 +1248,7 @@ void print_tutorial(char* tutorial_number, \
 				break;
 
 			case COMMAND:
-				if(EXIT_CMD == exec_tutorial_command(command_window, gdb_file, buffer))
+				if(EXIT_CMD == exec_tutorial_command(&gdb_window, gdb_file, buffer))
 					goto EXIT;
 				break;
 			case PCODE:
@@ -1116,17 +1257,20 @@ void print_tutorial(char* tutorial_number, \
 
 			case PTUTORIAL:
 				// clear window everytime we'll print new line of tutorial
-				wclear((*tutorial_window).win);
-				wrefresh((*tutorial_window).win);
-				box((*tutorial_window).win, 0, 0);
-				(*tutorial_window).pointer_y = 1;
-				(*tutorial_window).pointer_x = 1;
+				wclear(tutorial_window.win);
+				box(tutorial_window.win, 0, 0);
+				mvwprintw(tutorial_window.win, 0,\
+						tutorial_window.width-strlen(tutorial_window.name)-1,\
+						tutorial_window.name);
+				wrefresh(tutorial_window.win);
+				tutorial_window.pointer_y = 1;
+				tutorial_window.pointer_x = 1;
 
-				print_to_window(buffer, tutorial_window);
+				print_to_window(buffer, &tutorial_window);
 
-				mvwprintw((*tutorial_window).win, (*tutorial_window).height-1, 0, "Press \"n\" to continue or N to go back.");
+				mvwprintw(tutorial_window.win, tutorial_window.height-1, 0, "Press \"n\" to continue or N to go back.");
 				noecho();
-				while(((tmp_ch = wgetch((*tutorial_window).win)) != 'n'))
+				while(((tmp_ch = wgetch(tutorial_window.win)) != 'n'))
 				{
 					pELOG("tmp_ch = %c", tmp_ch);
 					// if we are waiting after tutorial was printed
@@ -1134,15 +1278,15 @@ void print_tutorial(char* tutorial_number, \
 					// if user types command "exit", exit from tutorial mode
 					if(tmp_ch == 'q')
 					{
-						if((tmp_ch = wgetch((*tutorial_window).win)) == 'c')
+						if((tmp_ch = wgetch(tutorial_window.win)) == 'c')
 						{
 							echo();
 							strcpy(buffer, "command");
-							if(EXIT_CMD == exec_tutorial_command(command_window, gdb_file, buffer))
+							if(EXIT_CMD == exec_tutorial_command(&gdb_window, gdb_file, buffer))
 							{
 								goto EXIT;
 							}
-							mvwprintw((*tutorial_window).win, (*tutorial_window).height-1, 0, "Press \"n\" to continue or N to go back.");
+							mvwprintw(tutorial_window.win, tutorial_window.height-1, 0, "Press \"n\" to continue or N to go back.");
 							noecho();
 						}
 					}
@@ -1156,13 +1300,6 @@ void print_tutorial(char* tutorial_number, \
 	}
 
 EXIT:
-	shell_temp = fopen("./tmp/window.tmp", "r");
-	shell_window.win = getwin(shell_temp);
-	//shell_window = save_window(saved_window, shell_temp, 0);
-	fclose(shell_temp);
-
-	wrefresh(shell_window.win);
-
 	fclose(tutorials_txt);
 	fclose(gdb_file);
 
