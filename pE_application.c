@@ -860,8 +860,9 @@ int exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_fi
 	strcpy(end_buffer, "End ");
 
 	wclear((*tutorial_window).win);
-	wrefresh((*tutorial_window).win);
 	box((*tutorial_window).win, 0, 0);
+	mvwprintw((*tutorial_window).win, 0, (*tutorial_window).width-strlen((*tutorial_window).name)-1, (*tutorial_window).name);
+	wrefresh((*tutorial_window).win);
 
 	(*tutorial_window).pointer_y = 1;
 	(*tutorial_window).pointer_x = 1;
@@ -877,8 +878,9 @@ int exec_tutorial_command(struct window_desc *tutorial_window, FILE* tutorial_fi
 			noecho();
 			while((tmp_ch = wgetch((*tutorial_window).win)) != 'n');
 			wclear((*tutorial_window).win);
-			wrefresh((*tutorial_window).win);
 			box((*tutorial_window).win, 0, 0);
+			mvwprintw((*tutorial_window).win, 0, (*tutorial_window).width-strlen((*tutorial_window).name)-1, (*tutorial_window).name);
+			wrefresh((*tutorial_window).win);
 			(*tutorial_window).pointer_y = 1;
 			(*tutorial_window).pointer_x = 1;
 			echo();
