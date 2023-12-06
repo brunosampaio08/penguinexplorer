@@ -91,9 +91,9 @@ class spBreakpoint(gdb.Breakpoint):
 
             self.libc_rip = gdb.parse_and_eval("$sp")
             # get sp address and cast it from (void *) to a 64bit integer
-            self.libc_rip_sp = self.libc_rip.cast(gdb.lookup_type("unsigned long long").pointer())
+            self.libc_rip_sp = self.libc_rip.cast(gdb.lookup_type("unsigned long").pointer())
             # dereference sp and get effective libc address and cast it
-            self.libc_rip = self.libc_rip_sp.dereference().cast(gdb.lookup_type("unsigned long long").pointer())
+            self.libc_rip = self.libc_rip_sp.dereference().cast(gdb.lookup_type("unsigned long").pointer())
             logger.debug("libc_rip: "+self.libc_rip.format_string())
             gdb.set_convenience_variable("libc_rip_sp", self.libc_rip_sp)
             gdb.set_convenience_variable("libc_rip", self.libc_rip)
