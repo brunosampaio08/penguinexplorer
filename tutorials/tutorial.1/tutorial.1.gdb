@@ -1,5 +1,6 @@
 set debuginfod enabled on
 set debuginfod urls https://debuginfod.archlinux.org
+set debuginfod verbose 0
 
 break _start
 

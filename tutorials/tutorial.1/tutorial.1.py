@@ -202,10 +202,12 @@ class tutorialMainBP(gdb.Breakpoint):
         gdb.execute("list main,")
         gdb.execute("echo End command list main,\\n")
 
+        gdb.execute("set listsize 9")
         gdb.execute("echo Start command list,\\n")
         gdb.execute("list")
         gdb.execute("echo End command list,\\n")
 
+        gdb.execute("set listsize 7")
         gdb.execute("echo Start command list my_recursion,\\n")
         gdb.execute("list my_recursion,")
         gdb.execute("echo End command list my_recursion,\\n")
