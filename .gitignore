@@ -5,3 +5,5 @@ user_scripts/**
 tutorials/bin/**
 **/tags
 TODO
+run.sh
+gdb_utils/**
