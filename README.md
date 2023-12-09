@@ -5,4 +5,4 @@ penguinExplorer (pE) code
 
 - Build, install and use:
 1. $ make
-2. $./run.sh
+2. $ ./bin/pE\_application
