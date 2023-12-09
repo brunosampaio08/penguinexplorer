@@ -1217,8 +1217,10 @@ void print_tutorial(char* tutorial_number, \
 	print_to_window("Useful tips while doing a tutorial:\n", &help_window);
 	print_to_window("You can always press 'q' and then 'c' to go to command mode!\n", &help_window);
 	print_to_window("In command mode, type 'help' for useful command!\n", &help_window);
+	/*
 	print_to_window("You can press 'TBD' to focus on stack window. While there, N and n will\
 			switch through pages!\n", &help_window);
+	*/
 
 	tutorials_txt = fopen(tutorial_number, "r");
 	gdb_file = fopen(GDB_TMP_2, "r");

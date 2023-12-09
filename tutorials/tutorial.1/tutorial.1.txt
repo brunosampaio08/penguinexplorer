@@ -2,30 +2,30 @@ Hi and welcome, this is tutorial.1! Here, you'll learn about the stack and stack
 pcode
 This is a really simple code, as you can see. We have the entry point, which is the main(). This is linked by the compiler to libc and gets called by it, we'll take a look on that later.
 main() declares three local variables with constant values and one of them will be passed as an argument to the recursive function my_recursion().
-my_recursion() is also a simples function that receives one argument "i" and declares no local scope variables. It'll run i+1 times, and as we can see i is passed as constant my_int which is 3, so my_recursion() will run 3 times.
+my_recursion() is also a simples function that receives one argument "i" and declares no local scope variables. It'll run i+1 times, and as we can see i is passed as constant my_int which is 3, so my_recursion() will run 4 times.
 As you'll see later, every call to a function is pretty much the same from the stack point of view, so there's no point in doing too many calls as it would just bore you (which is the exact opposite of a learning technology's objective).
-So this is what we'll do: every time the stack pointer (i.e. the pointer to the top of the stack that's store on the $sp register - or $rsp for the x86) changes, we'll stop the program and take a look at the stack.
+So this is what we'll do: every time the stack pointer (i.e. the pointer to the top of the stack) changes, we'll stop the program and take a look at the stack.
 So, take a last look at the code because we are about to begin!
 pcode
 Okay, we're back. Just remember, any time you can type 'q' to enter command mode and then 'c' to go to command prompt. There, you can type "pcode" so look at the code again, or "help" to see other available commands.
 Let's start executing the code.
 pstack
-Ok, so first a few considerations about how the stack is shown. Remember from your classes, the heap grows up and the stack grows down - this basically means that the $sp is decremented everytime it changes.
-If you look at the stack right now, you'll see 9 hex values.
-We can now see on the right side 9 different hex values. The first, before the vertical bar, is $sp register value, i.e. the current top of the stack. The other 8 values are 8 different bytes, least to most significative.
-Notice that this means that the bytes are represented on reverse order, and we should read it from right to left. However, each individual byte should be read from right to left. Confusing? I'll try to help. Let's look at an example.
-Take a look at the line: | 0xff | 0x01 0x00 0x00 0x00 0x02 0x00 0x00 0x00 | This line means: The address | 0xff | points to the value | 0x0000000200000001 |. Can you see it now? even though the right most byte is 0x01, it is the least significative byte. It also really represents 0x01, no need to invert it.
+Ok, so first a few considerations about how the stack is shown. Remember from your classes, the heap grows up and the stack grows down - this basically means that the %sp (which is the register that stores the stack pointer - i.e. the address to the top of the stack) is decremented everytime it changes. Also, %sp is called %rsp for the x86 architecture.
+If you look at the stack right now, you'll see 9 hex values. The leftmost one is a 64-bit (most significant 00 is omitted) address. The other 8 ones are 8-bit values.
+Let's take a closer look at them. The first, before the vertical bar, is $sp register value, i.e. the current top of the stack. The other 8 values are 8 different bytes, least to most significative.
+Notice that this means that the bytes are represented on reverse order, and we should read it from right to left. However, each individual byte should be read from left to right, like you normally do. Confusing? I'll try to help. Let's look at an example.
+Take a look at the line: | 0xff | 0x01 0x00 0x00 0x00 0x02 0x00 0x00 0x00 | This line means: The address | 0xff | points to the value | 0x0000000200000001 |. Can you see it now? even though the right most byte is 0x01, it is the least significative byte. It also really represents 0x01, no need to invert it. If you're dealing with this the first time, it could be confusing, so take your time. You'll get used to it.
 Now, let's try examining the stack. Right now, we have only one address there. Can you guess what it is?
-This one was a trick question, because this isn't part of our running application. During libc startup flow, it'll call your C program main from it's own function, called __libc_start_call_main. Let's concatenate these 8 bytes and checkout which symbol this address points to.
-Type "command x/8xg $sp" so we can check the hexadecimal full address. This will show us %sp and the associated symbol from the compilers symbol table, if there's one.
+This one was a trick question, because this isn't part of our running application. During libc startup flow, it'll call your C program main from it's own function, called __libc_start_call_main. Let's concatenate these 8 bytes and check out which symbol this address points to.
+Type "command x/8xg $sp" so we can check the hexadecimal full address. This will show us %sp and the associated symbol from the compilers symbol table, if there's one. The command means: take the first 8 bytes from the address i'm telling you (which in our case is $sp) and print it in hexadecimal as a giant word. Type commands exactly like they are written between the "".
 command x/8xg $sp
 Cool, this is __libc_start_call_main plus 128 bytes. We can also see that the address printed is the concatenation of our current stack's first 8 bytes.
-Notice that address is printed right to left on our stack, last printed byte is actually address first byte. Bytes are printed from right to left as you'd expect.
+Notice that address is printed right to left on our stack, last printed byte is actually address first byte. Individual bytes are printed from left to right as you'd expect.
 Now let's try checking what line that is.
 Type "command info lines *($sp)" so we can check the line current stack pointer top is pointing to. This will show us a readable code line from the address pointed to by %sp, if it represents a code line of course.
 command info lines *($sp)
 Nice, we can see that main is being called directly by __libc_start_main. That means that libc linked our program to the library and is now calling our main(), like any function you call on your own userspace programs. Notice that this is the same address - except for the fact that it is aligned - as the one on the bottom of our stack.
-Explaining in a little more detail, every time a call is made by an application, the return address must be stored so it know where to go back to after the return. This is made by pushing %pc (called %rip for x86_64) to the stack. This means that the top of the previous stack frame, i.e., the caller frame, is always the return address.
+Explaining in a little more detail, every time a call is made by an application, the return address must be stored so it knows where to go back to after the return. This is made by pushing %pc (called %rip for x86_64) to the stack. This means that the top of the previous stack frame, i.e., the caller frame, is always the return address.
 Now let's keep going.
 pstack
 Here, another interesting thing happened. Current value on top of the stack is an 8 bytes 0x1. What's that? Let's check the assembly code to try and figure out.
@@ -40,7 +40,7 @@ Type "command list main," to check the first 5 lines of main function.
 command list main,
 Can you guess now to what our current stack pointer points to?
 If you said "to the top of our local variables allocation space", you're correct! Now, before I explain to you, trying figuring out: Why are there 16 bytes allocated instead of just the 12 we have (3 integers)? Where are the values we assigned to them?
-If you could'nt understand, don't worry! I'll tell you! First, Linux aligns the stack memory (for the x86_64 architecture, of course) to 16 bytes, so that it fits the biggest thing possible. In this case, the alignment is due to the x86_64 SSE instruction. But that's out of our scope.
+If you could'nt understand, don't worry! I'll tell you! First, Linux aligns the stack memory (for the x86_64 architecture, of course) to 16 bytes, so that it aligns with the MMX registers, which are used for floating pointer operations by SSE instructions. This allows memory allocation to be waaay faster by using C's alignof. But that's out of our scope.
 Second, the values aren't there yet, because right now the code is just manipulating the stack size. Next time the stack changes, we'll get back to those addresses.
 Also, remember that memory is printed right to left, down to up. That means that the first 4 bytes on our last printed address is thrash (not allocated), next 4 bytes concatenated are our first local value, and so on.
 Ok. So now, before I get you clueless again, let's give you a preemptive (pun intended) clue. Let's take a look at the full main.
@@ -63,7 +63,7 @@ Ok, now let's keep going.
 pstack
 Stack changed again! What happened now? Remember main code flow! Tip: go to command prompt if you need to double check our source code!
 Yes! We have pushed previous %rbp, which is the pointer to the top of our previous frame. You can even concatenate the 8 bytes on your head and check to where it points to on our stack.
-If you figured out "the start of main()" - the caller - frame, you are correct.
+If you figured out "the start of main() - the caller - frame", you are correct.
 pstack
 Stack changed, and this time we have 16 new bytes. What are those for? We do not have locals :monkaHmm:
 Function arguments are treated as locals and stored on stack! So our stack frame expandaded 16 bytes (why 16? Remember!) to keep the argument we passed to my_recursion()! They are also all thrash, because we are not yet assigning values!
@@ -79,7 +79,6 @@ pstack
 So, did you get it? "It's going to be 2, which is the value of 'i' for the second iteration" was the right answer!! Ok, Now we are going to update the stack a few times in a row. Try to get what's going on, look at the source code if you neeed to. I'll see you on a bit!
 pstack
 pstack
-2
 pstack
 Woops, our stack is starting to grow a lot! Try to guess: next time we update, how many times will our recursion have been called? Just a hint: remember to look for the value of 'i' on our stack! 
 pstack
